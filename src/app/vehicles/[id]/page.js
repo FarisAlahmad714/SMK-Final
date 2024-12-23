@@ -1,27 +1,65 @@
 // src/app/vehicles/[id]/page.js
+'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import TestDriveForm from '@/components/forms/TestDriveForm'
 
 export default function VehicleDetailsPage({ params }) {
-  // Sample data - will be replaced with real data later
-  const vehicle = {
-    id: params.id,
-    name: '2024 BMW M2',
-    price: 80800,
-    mileage: '125 mi',
-    images: [
-      '/api/placeholder/800/600',
-      '/api/placeholder/400/300',
-      '/api/placeholder/400/300',
-      '/api/placeholder/400/300',
-      '/api/placeholder/400/300'
-    ],
-    stockNumber: 'SMK30260',
-    transmission: 'Automatic',
-    exteriorColor: 'Blue',
-    status: 'available',
-    description: 'Experience the pinnacle of performance with the 2024 BMW M2. This vehicle combines luxury, power, and precision engineering to deliver an unforgettable driving experience.'
+  const [vehicle, setVehicle] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedImage, setSelectedImage] = useState(0)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const vehicleId = params?.id 
+
+useEffect(() => {
+    if (vehicleId) {
+      fetchVehicleDetails()
+    }
+  }, [vehicleId]) //
+
+  const fetchVehicleDetails = async () => {
+    try {
+      const res = await fetch(`/api/vehicles/${vehicleId}`)
+      if (!res.ok) throw new Error('Failed to fetch vehicle')
+      const data = await res.json()
+      setVehicle(data)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
   }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!vehicle) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900">Vehicle Not Found</h2>
+          <p className="mt-2 text-gray-600">The vehicle you're looking for might have been removed or sold.</p>
+          <Link
+            href="/vehicles"
+            className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Inventory
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const vehicleName = `${vehicle.year} ${vehicle.make} ${vehicle.model}`
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -29,77 +67,93 @@ export default function VehicleDetailsPage({ params }) {
         href="/vehicles"
         className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6"
       >
-        ← Back to Inventory
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Inventory
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image Gallery */}
         <div className="space-y-4">
-          <div className="aspect-w-16 aspect-h-9">
+          <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden">
             <img
-              src={vehicle.images[0]}
-              alt={vehicle.name}
-              className="w-full h-full object-cover rounded-lg"
+              src={vehicle.images[selectedImage] || '/api/placeholder/800/600'}
+              alt={vehicleName}
+              className="w-full h-full object-cover"
             />
           </div>
-          <div className="grid grid-cols-4 gap-4">
-            {vehicle.images.slice(1).map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt={`${vehicle.name} view ${index + 2}`}
-                className="w-full h-24 object-cover rounded-lg"
-              />
-            ))}
-          </div>
+          {vehicle.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-4">
+              {vehicle.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={`relative aspect-w-16 aspect-h-9 rounded-lg overflow-hidden 
+                    ${selectedImage === index ? 'ring-2 ring-blue-600' : 'hover:opacity-75'}`}
+                >
+                  <img
+                    src={image}
+                    alt={`${vehicleName} view ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Vehicle Details */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{vehicle.name}</h1>
-          <p className="text-2xl text-blue-600 font-bold mb-4">
-            ${vehicle.price.toLocaleString()}
-          </p>
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{vehicleName}</h1>
+            <p className="text-2xl text-blue-600 font-bold mb-4">
+              ${vehicle.price.toLocaleString()}
+            </p>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <h3 className="text-sm text-gray-500">Stock #</h3>
-              <p className="text-gray-900">{vehicle.stockNumber}</p>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <h3 className="text-sm text-gray-500">Stock #</h3>
+                <p className="text-gray-900">{vehicle.stockNumber}</p>
+              </div>
+              <div>
+                <h3 className="text-sm text-gray-500">Mileage</h3>
+                <p className="text-gray-900">{vehicle.mileage.toLocaleString()} mi</p>
+              </div>
+              <div>
+                <h3 className="text-sm text-gray-500">Transmission</h3>
+                <p className="text-gray-900">{vehicle.transmission}</p>
+              </div>
+              <div>
+                <h3 className="text-sm text-gray-500">Exterior Color</h3>
+                <p className="text-gray-900">{vehicle.exteriorColor}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm text-gray-500">Mileage</h3>
-              <p className="text-gray-900">{vehicle.mileage}</p>
+
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Description</h3>
+              <p className="text-gray-600">{vehicle.description}</p>
             </div>
-            <div>
-              <h3 className="text-sm text-gray-500">Transmission</h3>
-              <p className="text-gray-900">{vehicle.transmission}</p>
-            </div>
-            <div>
-              <h3 className="text-sm text-gray-500">Exterior Color</h3>
-              <p className="text-gray-900">{vehicle.exteriorColor}</p>
-            </div>
+
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Schedule Test Drive
+            </button>
           </div>
-
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Description</h3>
-            <p className="text-gray-600">{vehicle.description}</p>
-          </div>
-
-          <button
-            onClick={() => document.getElementById('test-drive-modal').showModal()}
-            className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Schedule Test Drive
-          </button>
         </div>
       </div>
 
       {/* Test Drive Modal */}
-      <dialog id="test-drive-modal" className="modal">
-        <div className="bg-white p-6 rounded-lg max-w-md w-full">
-          <TestDriveForm vehicle={vehicle} />
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <TestDriveForm 
+              vehicle={vehicle}
+              onClose={() => setIsModalOpen(false)}
+            />
+          </div>
         </div>
-      </dialog>
+      )}
     </div>
   )
 }
