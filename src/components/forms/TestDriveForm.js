@@ -1,57 +1,122 @@
-// src/components/forms/TestDriveForm.js
-'use client'
-import { useState } from 'react'
-import { X } from 'lucide-react'
+"use client";
+
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { isSameDay, parseISO, format } from "date-fns";
 
 export default function TestDriveForm({ vehicle, onClose }) {
   const [formData, setFormData] = useState({
-    customerName: '',
-    email: '',
-    phone: '',
-    date: '',
-    time: '',
-    notes: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+    customerName: "",
+    email: "",
+    phone: "",
+    date: "",
+    time: "",
+    notes: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [blockedTimes, setBlockedTimes] = useState([]);
 
-  // Generate available time slots (9 AM to 5 PM)
-  const timeSlots = []
-  for (let hour = 9; hour <= 17; hour++) {
-    timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+  // Generate all time slots (9 AM to 7 PM)
+  const allTimeSlots = [];
+  for (let hour = 9; hour <= 19; hour++) {
+    allTimeSlots.push(`${hour.toString().padStart(2, "0")}:00`);
   }
+
+  // Fetch blocked times whenever date changes
+  useEffect(() => {
+    const fetchBlockedTimes = async () => {
+      if (!formData.date) return;
+      
+      try {
+        const date = new Date(formData.date);
+        const res = await fetch(`/api/blocked-times?date=${date.toISOString()}`);
+        if (!res.ok) throw new Error('Failed to fetch blocked times');
+        const data = await res.json();
+        setBlockedTimes(data);
+      } catch (error) {
+        console.error('Error fetching blocked times:', error);
+      }
+    };
+
+    fetchBlockedTimes();
+  }, [formData.date]);
+
+  // Filter available time slots based on blocked times
+  const getAvailableTimeSlots = () => {
+    if (!formData.date) return allTimeSlots;
+
+    return allTimeSlots.filter(time => {
+      // Check if time is blocked
+      const isBlocked = blockedTimes.some(block => 
+        isSameDay(parseISO(block.date), new Date(formData.date)) &&
+        time >= block.startTime &&
+        time <= block.endTime
+      );
+      return !isBlocked;
+    });
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      const res = await fetch('/api/test-drives', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          vehicleId: vehicle.id
-        })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to schedule test drive')
-      }
-
-      setSuccess(true)
-    } catch (error) {
-      setError(error.message)
-    } finally {
-      setLoading(false)
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+  
+    // Check if the selected time is blocked
+    const isTimeBlocked = blockedTimes.some(block => 
+      isSameDay(parseISO(block.date), new Date(formData.date)) &&
+      formData.time >= block.startTime &&
+      formData.time <= block.endTime
+    );
+  
+    if (isTimeBlocked) {
+      setError("This time slot is no longer available. Please select another time.");
+      setLoading(false);
+      return;
     }
-  }
+  
+    // Convert local date to UTC while preserving the intended day
+    const localDate = new Date(formData.date + "T" + formData.time);
+    const utcDate = new Date(
+      Date.UTC(
+        localDate.getFullYear(),
+        localDate.getMonth(),
+        localDate.getDate(),
+        localDate.getHours(),
+        localDate.getMinutes()
+      )
+    );
+  
+    // Prepare data to send
+    const data = {
+      ...formData,
+      vehicleId: vehicle.id, 
+      date: utcDate.toISOString(),
+    };
+  
+    try {
+      const res = await fetch("/api/test-drives", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+  
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData?.error || "Failed to schedule test drive");
+      }
+  
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (success) {
     return (
@@ -60,30 +125,25 @@ export default function TestDriveForm({ vehicle, onClose }) {
           Test Drive Scheduled!
         </h3>
         <p className="text-gray-600 mb-4">
-          We'll be in touch shortly to confirm your appointment.
+          We&apos;ll be in touch shortly to confirm your appointment.
         </p>
-        <button
-          onClick={onClose}
-          className="text-blue-600 hover:text-blue-800"
-        >
+        <button onClick={onClose} className="text-blue-600 hover:text-blue-800">
           Close
         </button>
       </div>
-    )
+    );
   }
+
+  const availableTimeSlots = getAvailableTimeSlots();
+  const isDateFullyBlocked = formData.date && availableTimeSlots.length === 0;
 
   return (
     <div className="relative">
-      <button
-        onClick={onClose}
-        className="absolute right-0 top-0 p-2"
-      >
+      <button onClick={onClose} className="absolute right-0 top-0 p-2">
         <X className="w-6 h-6" />
       </button>
 
-      <h2 className="text-xl font-bold mb-4">
-        Schedule Test Drive
-      </h2>
+      <h2 className="text-xl font-bold mb-4">Schedule Test Drive</h2>
       <p className="text-gray-600 mb-6">
         {vehicle.year} {vehicle.make} {vehicle.model}
       </p>
@@ -104,10 +164,9 @@ export default function TestDriveForm({ vehicle, onClose }) {
             required
             className="w-full border rounded-md px-3 py-2"
             value={formData.customerName}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              customerName: e.target.value
-            }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, customerName: e.target.value }))
+            }
           />
         </div>
 
@@ -120,10 +179,9 @@ export default function TestDriveForm({ vehicle, onClose }) {
             required
             className="w-full border rounded-md px-3 py-2"
             value={formData.email}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              email: e.target.value
-            }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, email: e.target.value }))
+            }
           />
         </div>
 
@@ -136,10 +194,9 @@ export default function TestDriveForm({ vehicle, onClose }) {
             required
             className="w-full border rounded-md px-3 py-2"
             value={formData.phone}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              phone: e.target.value
-            }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, phone: e.target.value }))
+            }
           />
         </div>
 
@@ -151,14 +208,22 @@ export default function TestDriveForm({ vehicle, onClose }) {
             <input
               type="date"
               required
-              min={new Date().toISOString().split('T')[0]}
+              min={new Date().toISOString().split("T")[0]}
               className="w-full border rounded-md px-3 py-2"
               value={formData.date}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                date: e.target.value
-              }))}
+              onChange={(e) => {
+                setFormData((prev) => ({ 
+                  ...prev, 
+                  date: e.target.value,
+                  time: "" // Reset time when date changes
+                }));
+              }}
             />
+            {isDateFullyBlocked && (
+              <p className="mt-1 text-sm text-red-600">
+                This date is not available
+              </p>
+            )}
           </div>
 
           <div>
@@ -169,14 +234,16 @@ export default function TestDriveForm({ vehicle, onClose }) {
               required
               className="w-full border rounded-md px-3 py-2"
               value={formData.time}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                time: e.target.value
-              }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, time: e.target.value }))
+              }
+              disabled={!formData.date || isDateFullyBlocked}
             >
               <option value="">Select time</option>
-              {timeSlots.map((time) => (
-                <option key={time} value={time}>{time}</option>
+              {availableTimeSlots.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
               ))}
             </select>
           </div>
@@ -190,21 +257,20 @@ export default function TestDriveForm({ vehicle, onClose }) {
             rows="3"
             className="w-full border rounded-md px-3 py-2"
             value={formData.notes}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              notes: e.target.value
-            }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, notes: e.target.value }))
+            }
           ></textarea>
         </div>
 
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-          disabled={loading}
+          disabled={loading || isDateFullyBlocked}
         >
-          {loading ? 'Scheduling...' : 'Schedule Test Drive'}
+          {loading ? "Scheduling..." : "Schedule Test Drive"}
         </button>
       </form>
     </div>
-  )
+  );
 }

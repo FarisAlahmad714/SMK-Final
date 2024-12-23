@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma'
 export async function POST(request) {
   try {
     const data = await request.json()
-    
+
     const vehicle = await prisma.vehicle.create({
       data: {
         stockNumber: data.stockNumber,
@@ -19,8 +19,8 @@ export async function POST(request) {
         exteriorColor: data.exteriorColor,
         description: data.description,
         images: data.images || [],
-        status: 'AVAILABLE'
-      }
+        status: 'AVAILABLE',
+      },
     })
 
     return NextResponse.json(vehicle, { status: 201 })
@@ -37,6 +37,8 @@ export async function POST(request) {
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
+
+    // Existing query parameters
     const sort = searchParams.get('sort')
     const limit = searchParams.get('limit')
     const make = searchParams.get('make')
@@ -44,21 +46,34 @@ export async function GET(request) {
     const maxPrice = searchParams.get('maxPrice')
     const year = searchParams.get('year')
 
+    // NEW search parameter
+    const search = searchParams.get('search')
+
     // Build filter conditions
     let whereClause = {}
-    
+
     if (make) {
       whereClause.make = make
     }
-    
+
     if (minPrice || maxPrice) {
       whereClause.price = {}
       if (minPrice) whereClause.price.gte = parseFloat(minPrice)
       if (maxPrice) whereClause.price.lte = parseFloat(maxPrice)
     }
-    
+
     if (year) {
       whereClause.year = parseInt(year)
+    }
+
+    // If `search` is provided, search by make OR model (case-insensitive)
+    if (search) {
+      // "OR" so it matches either make OR model
+      // Using "contains" + "mode: 'insensitive'" for partial, case-insensitive match
+      whereClause.OR = [
+        { make: { contains: search, mode: 'insensitive' } },
+        { model: { contains: search, mode: 'insensitive' } },
+      ]
     }
 
     // Build ordering based on sort parameter

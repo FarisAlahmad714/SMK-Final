@@ -1,33 +1,52 @@
-'use client'
-import { useState } from 'react'
+"use client";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    message: ''
-  })
+    fullName: "",
+    email: "",
+    message: "",
+  });
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    // Will implement form submission later
-    console.log('Form submitted:', formData)
-  }
+    e.preventDefault();
+    // Implement your form submission logic here (e.g., API call).
+    console.log("Form submitted:", formData);
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
   return (
-    <div className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow">
+    <div className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow mt-10">
+      {/* Heading */}
+      <div className="mb-6 text-center">
+
+        <p className="text-gray-600">
+          We value all inquiries—whether it’s questions about our services, 
+          general feedback, or requests for specific vehicles you’d like us to locate.
+          Let us know how we can help!
+        </p>
+      </div>
+
+      {/* “Back to Home” button */}
+      <div className="mb-4">
+        <Link href="/">
+          <button className="text-blue-600 hover:text-blue-800">&larr; Back to Home</button>
+        </Link>
+      </div>
+
+      {/* Contact Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label 
-            htmlFor="fullName" 
+          <label
+            htmlFor="fullName"
             className="block text-sm font-medium text-gray-700"
           >
             Full Name
@@ -44,8 +63,8 @@ export default function ContactForm() {
         </div>
 
         <div>
-          <label 
-            htmlFor="email" 
+          <label
+            htmlFor="email"
             className="block text-sm font-medium text-gray-700"
           >
             Email Address
@@ -62,8 +81,8 @@ export default function ContactForm() {
         </div>
 
         <div>
-          <label 
-            htmlFor="message" 
+          <label
+            htmlFor="message"
             className="block text-sm font-medium text-gray-700"
           >
             Message
@@ -87,5 +106,5 @@ export default function ContactForm() {
         </button>
       </form>
     </div>
-  )
+  );
 }

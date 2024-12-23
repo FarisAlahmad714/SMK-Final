@@ -47,7 +47,15 @@ export default function VehicleManagement() {
   }, [vehicles])
 
   const filteredGroups = useMemo(() => {
-    if (!searchTerm) return groupedVehicles
+    if (!searchTerm) {
+      // Sort makes alphabetically
+      return Object.keys(groupedVehicles)
+        .sort()
+        .reduce((obj, key) => {
+          obj[key] = groupedVehicles[key];
+          return obj;
+        }, {});
+    }
 
     const filtered = {}
     Object.entries(groupedVehicles).forEach(([make, makeVehicles]) => {

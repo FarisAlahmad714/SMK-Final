@@ -1,88 +1,125 @@
-// src/app/api/test-drives/route.js
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-// GET all test drives
 export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const start = searchParams.get('start')
-    const end = searchParams.get('end')
+ try {
+   const { searchParams } = new URL(request.url)
+   const start = searchParams.get('start')
+   const end = searchParams.get('end')
 
-    let whereClause = {}
-    
-    if (start && end) {
-      whereClause.date = {
-        gte: new Date(start),
-        lte: new Date(end)
-      }
-    }
+   let whereClause = {}
+   
+   if (start && end) {
+     // Convert UTC dates to PST
+     const startPST = new Date(start).toLocaleString('en-US', {
+       timeZone: 'America/Los_Angeles'
+     })
+     const endPST = new Date(end).toLocaleString('en-US', {
+       timeZone: 'America/Los_Angeles'
+     })
 
-    const appointments = await prisma.testDrive.findMany({
-      where: whereClause,
-      include: {
-        vehicle: true
-      },
-      orderBy: {
-        date: 'asc'
-      }
-    })
+     whereClause.date = {
+       gte: new Date(startPST),
+       lte: new Date(endPST)
+     }
+   }
 
-    return NextResponse.json(appointments)
-  } catch (error) {
-    console.error('Error fetching test drives:', error)
-    return NextResponse.json(
-      { error: 'Error fetching test drives' },
-      { status: 500 }
-    )
-  }
+   const appointments = await prisma.testDrive.findMany({
+     where: whereClause,
+     include: {
+       vehicle: true
+     },
+     orderBy: {
+       date: 'asc'
+     }
+   })
+
+   // Convert dates back to local time for client
+   const formattedAppointments = appointments.map(apt => ({
+     ...apt,
+     date: new Date(apt.date).toLocaleString('en-US', {
+       timeZone: 'America/Los_Angeles'
+     })
+   }))
+
+   return NextResponse.json(formattedAppointments)
+ } catch (error) {
+   console.error('Error fetching appointments:', error)
+   return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 })
+ }
 }
 
-// CREATE new test drive
 export async function POST(request) {
-  try {
-    const data = await request.json()
-    
-    // Check if the time slot is available
-    const existingAppointment = await prisma.testDrive.findFirst({
-      where: {
-        date: new Date(data.date),
-        time: data.time,
-        NOT: {
-          status: 'CANCELLED'
-        }
-      }
-    })
+ try {
+   const data = await request.json()
+   const date = new Date(data.date)
+   
+   // Convert to PST before checking conflicts
+   const pstDate = new Date(date.toLocaleString('en-US', {
+     timeZone: 'America/Los_Angeles'
+   }))
 
-    if (existingAppointment) {
-      return NextResponse.json(
-        { error: 'This time slot is already booked' },
-        { status: 400 }
-      )
-    }
+   // Check for blocked times
+   const blockedTime = await prisma.blockedTimeSlot.findFirst({
+     where: {
+       date: pstDate,
+       startTime: {
+         lte: data.time
+       },
+       endTime: {
+         gte: data.time
+       }
+     }
+   })
 
-    const appointment = await prisma.testDrive.create({
-      data: {
-        vehicleId: data.vehicleId,
-        customerName: data.customerName,
-        email: data.email,
-        phone: data.phone,
-        date: new Date(data.date),
-        time: data.time,
-        status: data.status || 'PENDING',
-        notes: data.notes
-      },
-      include: {
-        vehicle: true
-      }
-    })
+   if (blockedTime) {
+     return NextResponse.json(
+       { error: 'This time slot is blocked' },
+       { status: 400 }
+     )
+   }
 
-    return NextResponse.json(appointment, { status: 201 })
-  } catch (error) {
-    console.error('Error creating test drive:', error)
-    return NextResponse.json(
-      { error: 'Error creating test drive' },
-      { status: 500 }
-    )
-  }
+   // Check for existing appointments
+   const existingAppointment = await prisma.testDrive.findFirst({
+     where: {
+       date: pstDate,
+       time: data.time,
+       NOT: {
+         status: 'CANCELLED'
+       }
+     }
+   })
+
+   if (existingAppointment) {
+     return NextResponse.json(
+       { error: 'This time slot is already booked' },
+       { status: 400 }
+     )
+   }
+
+   const appointment = await prisma.testDrive.create({
+     data: {
+       vehicleId: data.vehicleId,
+       customerName: data.customerName,
+       email: data.email,
+       phone: data.phone,
+       date: new Date(data.date), 
+       time: data.time,
+       status: 'PENDING',
+       notes: data.notes
+     },
+     include: {
+       vehicle: true
+     }
+   })
+
+   return NextResponse.json({
+    ...appointment,
+    date: appointment.date.toISOString()
+  }, { status: 201 });
+
+} catch (error) {
+  console.error('Error creating appointment:', error);
+  return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+}
 }

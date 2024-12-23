@@ -2,6 +2,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+// Add these imports to handle date comparisons:
+import { parseISO, isSameDay } from 'date-fns'
 
 export default function AppointmentModal({ 
   isOpen, 
@@ -11,12 +13,18 @@ export default function AppointmentModal({
   onSave 
 }) {
   const [vehicles, setVehicles] = useState([])
+  
+  // 1) New state for blocked times
+  const [blockedTimes, setBlockedTimes] = useState([])
+
   const [formData, setFormData] = useState({
     vehicleId: appointment?.vehicleId || '',
     customerName: appointment?.customerName || '',
     email: appointment?.email || '',
     phone: appointment?.phone || '',
-    date: appointment?.date || selectedDate?.toISOString().split('T')[0] || '',
+    date: appointment?.date 
+      ? new Date(appointment.date).toISOString().split('T')[0] 
+      : selectedDate?.toISOString().split('T')[0] || '',
     time: appointment?.time || '09:00',
     status: appointment?.status || 'PENDING',
     notes: appointment?.notes || ''
@@ -38,27 +46,58 @@ export default function AppointmentModal({
     }
   }
 
+  // 2) Fetch blocked times whenever formData.date changes
+  useEffect(() => {
+    if (!formData.date) return;
+    
+    const fetchBlockedTimes = async () => {
+      try {
+        const res = await fetch(`/api/blocked-times?date=${formData.date}`);
+        if (!res.ok) throw new Error('Failed to fetch blocked times');
+        const data = await res.json();
+        setBlockedTimes(data);
+      } catch (error) {
+        console.error('Error fetching blocked times:', error);
+      }
+    };
+
+    fetchBlockedTimes();
+  }, [formData.date]);
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-
+    
+    // Convert local date to UTC while preserving the intended day
+    const localDate = new Date(formData.date + 'T' + formData.time)
+    const utcDate = new Date(Date.UTC(
+      localDate.getFullYear(),
+      localDate.getMonth(),
+      localDate.getDate(), 
+      localDate.getHours(),
+      localDate.getMinutes()
+    ))
+   
     try {
       const url = appointment
         ? `/api/test-drives/${appointment.id}`
         : '/api/test-drives'
       
       const method = appointment ? 'PUT' : 'POST'
-
+   
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          date: utcDate.toISOString()
+        })
       })
-
+   
       if (!res.ok) throw new Error('Failed to save appointment')
-
+   
       onSave()
       onClose()
     } catch (error) {
@@ -67,7 +106,7 @@ export default function AppointmentModal({
       setLoading(false)
     }
   }
-  
+
   const handleDelete = async () => {
     if (!appointment || !window.confirm('Are you sure you want to delete this appointment?')) {
       return;
@@ -90,9 +129,9 @@ export default function AppointmentModal({
     }
   };
 
-  // Available time slots (9 AM to 5 PM)
+  // Available time slots (9 AM to 7 PM)
   const timeSlots = []
-  for (let hour = 9; hour <= 17; hour++) {
+  for (let hour = 9; hour <= 19; hour++) {
     timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
   }
 
@@ -197,6 +236,7 @@ export default function AppointmentModal({
               />
             </div>
 
+            {/* 3) Updated Time select with blocked-time logic */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time
@@ -207,9 +247,20 @@ export default function AppointmentModal({
                 value={formData.time}
                 onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
               >
-                {timeSlots.map((time) => (
-                  <option key={time} value={time}>{time}</option>
-                ))}
+                {timeSlots.map((time) => {
+                  // Check if this time is in a blocked range
+                  const isBlocked = blockedTimes.some(block =>
+                    isSameDay(parseISO(block.date), new Date(formData.date)) &&
+                    time >= block.startTime &&
+                    time <= block.endTime
+                  );
+
+                  return (
+                    <option key={time} value={time}>
+                      {time} {isBlocked ? '(Blocked)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -227,32 +278,32 @@ export default function AppointmentModal({
           </div>
 
           <div className="flex justify-end gap-4 mt-6">
-                {appointment && ( // Only show delete button when editing an existing appointment
-                    <button
-                    type="button"
-                    onClick={handleDelete}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400"
-                    disabled={loading}
-                    >
-                    {loading ? 'Deleting...' : 'Delete'}
-                    </button>
-                )}
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-4 py-2 border rounded-md hover:bg-gray-50"
-                    disabled={loading}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                    disabled={loading}
-                >
-                    {loading ? 'Saving...' : 'Save Appointment'}
-                </button>
-                </div>
+            {appointment && ( // Only show delete button when editing an existing appointment
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400"
+                disabled={loading}
+              >
+                {loading ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border rounded-md hover:bg-gray-50"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : 'Save Appointment'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

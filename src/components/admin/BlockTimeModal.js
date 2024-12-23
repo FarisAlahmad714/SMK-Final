@@ -2,98 +2,118 @@
 'use client'
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { format } from 'date-fns'
 
 export default function BlockTimeModal({ date, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    startTime: '09:00',
-    endTime: '17:00',
-    reason: ''
-  })
-  const [loading, setLoading] = useState(false)
+    const formattedDate = format(date, 'MMMM d, yyyy')
+    
+    const [formData, setFormData] = useState({
+      date: date.toISOString(),
+      startTime: '09:00',
+      endTime: '19:00',
+      reason: '',
+      blockFullDay: false
+    })
+
+  const timeSlots = []
+  for (let hour = 9; hour <= 19; hour++) {
+    timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-
     try {
       const res = await fetch('/api/blocked-times', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date: date,
-          ...formData
+          date: formData.date,
+          startTime: formData.blockFullDay ? '09:00' : formData.startTime,
+          endTime: formData.blockFullDay ? '19:00' : formData.endTime,
+          reason: formData.reason
         })
       })
 
       if (!res.ok) throw new Error('Failed to block time')
-
       onSave()
     } catch (error) {
       console.error('Error:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Block Time Slot</h2>
-          <button onClick={onClose}>
-            <X className="w-6 h-6" />
-          </button>
+    <div className="bg-white rounded-lg w-full max-w-md p-6">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">Block Time</h2>
+          <p className="text-sm text-gray-600">{formattedDate}</p>
         </div>
-
+        <button onClick={onClose}>
+          <X className="w-6 h-6" />
+        </button>
+      </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time
-              </label>
-              <select
-                className="w-full border rounded-md px-3 py-2"
-                value={formData.startTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-              >
-                {Array.from({ length: 9 }, (_, i) => i + 9).map(hour => (
-                  <option key={hour} value={`${hour}:00`}>
-                    {`${hour}:00`}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Time
-              </label>
-              <select
-                className="w-full border rounded-md px-3 py-2"
-                value={formData.endTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-              >
-                {Array.from({ length: 9 }, (_, i) => i + 9).map(hour => (
-                  <option key={hour} value={`${hour}:00`}>
-                    {`${hour}:00`}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.blockFullDay}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  blockFullDay: e.target.checked
+                }))}
+              />
+              <span>Block entire day</span>
+            </label>
           </div>
 
+          {!formData.blockFullDay && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Start Time</label>
+                <select
+                  value={formData.startTime}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    startTime: e.target.value
+                  }))}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  {timeSlots.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">End Time</label>
+                <select
+                  value={formData.endTime}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    endTime: e.target.value
+                  }))}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  {timeSlots.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason (Optional)
-            </label>
+            <label className="block text-sm font-medium mb-1">Reason (Optional)</label>
             <textarea
+              value={formData.reason}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                reason: e.target.value
+              }))}
               className="w-full border rounded-md px-3 py-2"
               rows="3"
-              value={formData.reason}
-              onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-              placeholder="Why is this time being blocked?"
             />
           </div>
 
@@ -108,9 +128,8 @@ export default function BlockTimeModal({ date, onClose, onSave }) {
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              disabled={loading}
             >
-              {loading ? 'Blocking...' : 'Block Time'}
+              Block Time
             </button>
           </div>
         </form>
