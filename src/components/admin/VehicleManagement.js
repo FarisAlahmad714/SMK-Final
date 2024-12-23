@@ -1,14 +1,15 @@
 // src/components/admin/VehicleManagement.js
 'use client'
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Search, Edit, Trash } from 'lucide-react'
 import AddEditVehicleModal from './AddEditVehicleModal'
 
 export default function VehicleManagement() {
   const [vehicles, setVehicles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchVehicles()
@@ -20,19 +21,47 @@ export default function VehicleManagement() {
       const res = await fetch('/api/vehicles')
       if (!res.ok) throw new Error('Failed to fetch vehicles')
       const data = await res.json()
-      console.log('Fetched vehicles:', data) // Debug log
       setVehicles(data)
     } catch (error) {
-      console.error('Error fetching vehicles:', error)
+      console.error('Error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEdit = (vehicle) => {
-    setEditingVehicle(vehicle)
-    setIsModalOpen(true)
-  }
+  // Group vehicles by make
+  const groupedVehicles = useMemo(() => {
+    const grouped = vehicles.reduce((acc, vehicle) => {
+      const make = vehicle.make
+      if (!acc[make]) acc[make] = []
+      acc[make].push(vehicle)
+      return acc
+    }, {})
+
+    // Sort vehicles within each make by year (newest first)
+    Object.keys(grouped).forEach(make => {
+      grouped[make].sort((a, b) => b.year - a.year)
+    })
+
+    return grouped
+  }, [vehicles])
+
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm) return groupedVehicles
+
+    const filtered = {}
+    Object.entries(groupedVehicles).forEach(([make, makeVehicles]) => {
+      const filteredVehicles = makeVehicles.filter(vehicle => 
+        vehicle.stockNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.year.toString().includes(searchTerm)
+      )
+      if (filteredVehicles.length > 0) {
+        filtered[make] = filteredVehicles
+      }
+    })
+    return filtered
+  }, [groupedVehicles, searchTerm])
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this vehicle?')) return
@@ -43,122 +72,114 @@ export default function VehicleManagement() {
       })
 
       if (!res.ok) throw new Error('Failed to delete vehicle')
-      await fetchVehicles() // Refresh the list
+      fetchVehicles()
     } catch (error) {
-      console.error('Error deleting vehicle:', error)
+      console.error('Error:', error)
     }
-  }
-
-  const handleModalClose = () => {
-    setEditingVehicle(null)
-    setIsModalOpen(false)
-  }
-
-  const handleModalSave = async () => {
-    await fetchVehicles() // Refresh the list
-    handleModalClose()
   }
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Vehicle
-        </button>
-      </div>
-
-      {vehicles.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No vehicles found. Add your first vehicle to get started.
+    <div className="p-6">
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Vehicle Inventory</h1>
+          <button
+            onClick={() => {
+              setEditingVehicle(null)
+              setIsModalOpen(true)
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Add Vehicle
+          </button>
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vehicle Details
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock #
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="relative px-6 py-3">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {vehicles.map((vehicle) => (
-                <tr key={vehicle.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+
+        {/* Search */}
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search vehicles..."
+            className="w-full pl-10 pr-4 py-2 border rounded-md"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Vehicle List by Make */}
+        {Object.entries(filteredGroups).map(([make, makeVehicles]) => (
+          <div key={make} className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">{make}</h2>
+            </div>
+            <div className="divide-y">
+              {makeVehicles.map((vehicle) => (
+                <div key={vehicle.id} className="p-6 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {vehicle.year} {vehicle.make} {vehicle.model}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {vehicle.mileage.toLocaleString()} miles • {vehicle.exteriorColor}
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {vehicle.year} {vehicle.model}
+                      </h3>
+                      <div className="mt-1 text-sm text-gray-500 space-x-4">
+                        <span>Stock #{vehicle.stockNumber}</span>
+                        <span>${vehicle.price.toLocaleString()}</span>
+                        <span>{vehicle.mileage.toLocaleString()} miles</span>
+                        <span className={`
+                          inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                          ${vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                        `}>
+                          {vehicle.status}
+                        </span>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {vehicle.stockNumber}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    ${vehicle.price.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      vehicle.status === 'AVAILABLE' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {vehicle.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(vehicle)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(vehicle.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => {
+                          setEditingVehicle(vehicle)
+                          setIsModalOpen(true)
+                        }}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(vehicle.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </div>
+          </div>
+        ))}
+      </div>
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <AddEditVehicleModal
           vehicle={editingVehicle}
-          onClose={handleModalClose}
-          onSave={handleModalSave}
+          onClose={() => {
+            setIsModalOpen(false)
+            setEditingVehicle(null)
+          }}
+          onSave={() => {
+            fetchVehicles()
+            setIsModalOpen(false)
+            setEditingVehicle(null)
+          }}
         />
       )}
     </div>

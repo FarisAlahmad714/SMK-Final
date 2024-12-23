@@ -1,156 +1,209 @@
 // src/components/forms/TestDriveForm.js
 'use client'
 import { useState } from 'react'
+import { X } from 'lucide-react'
 
-export default function TestDriveForm({ vehicle }) {
+export default function TestDriveForm({ vehicle, onClose }) {
   const [formData, setFormData] = useState({
-    fullName: '',
+    customerName: '',
     email: '',
     phone: '',
-    preferredDate: '',
-    preferredTime: '',
+    date: '',
+    time: '',
     notes: ''
   })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Handle form submission - will be implemented later
-    console.log('Form submitted:', formData)
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
   // Generate available time slots (9 AM to 5 PM)
   const timeSlots = []
-  for (let i = 9; i <= 17; i++) {
-    timeSlots.push(`${i}:00`)
+  for (let hour = 9; hour <= 17; hour++) {
+    timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/test-drives', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...formData,
+          vehicleId: vehicle.id
+        })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to schedule test drive')
+      }
+
+      setSuccess(true)
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="text-center p-6">
+        <h3 className="text-xl font-bold text-green-600 mb-2">
+          Test Drive Scheduled!
+        </h3>
+        <p className="text-gray-600 mb-4">
+          We'll be in touch shortly to confirm your appointment.
+        </p>
+        <button
+          onClick={onClose}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          Close
+        </button>
+      </div>
+    )
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Schedule Test Drive</h2>
-        <p className="text-gray-600">{vehicle.name}</p>
-      </div>
+    <div className="relative">
+      <button
+        onClick={onClose}
+        className="absolute right-0 top-0 p-2"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      <h2 className="text-xl font-bold mb-4">
+        Schedule Test Drive
+      </h2>
+      <p className="text-gray-600 mb-6">
+        {vehicle.year} {vehicle.make} {vehicle.model}
+      </p>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-            Full Name
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Your Name
           </label>
           <input
             type="text"
-            id="fullName"
-            name="fullName"
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            value={formData.fullName}
-            onChange={handleChange}
+            className="w-full border rounded-md px-3 py-2"
+            value={formData.customerName}
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              customerName: e.target.value
+            }))}
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Email
           </label>
           <input
             type="email"
-            id="email"
-            name="email"
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+            className="w-full border rounded-md px-3 py-2"
             value={formData.email}
-            onChange={handleChange}
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              email: e.target.value
+            }))}
           />
         </div>
 
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Phone
           </label>
           <input
             type="tel"
-            id="phone"
-            name="phone"
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+            className="w-full border rounded-md px-3 py-2"
             value={formData.phone}
-            onChange={handleChange}
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              phone: e.target.value
+            }))}
           />
         </div>
 
-        <div>
-          <label htmlFor="preferredDate" className="block text-sm font-medium text-gray-700">
-            Preferred Date
-          </label>
-          <input
-            type="date"
-            id="preferredDate"
-            name="preferredDate"
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            value={formData.preferredDate}
-            onChange={handleChange}
-            min={new Date().toISOString().split('T')[0]}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Preferred Date
+            </label>
+            <input
+              type="date"
+              required
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full border rounded-md px-3 py-2"
+              value={formData.date}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                date: e.target.value
+              }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Preferred Time
+            </label>
+            <select
+              required
+              className="w-full border rounded-md px-3 py-2"
+              value={formData.time}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                time: e.target.value
+              }))}
+            >
+              <option value="">Select time</option>
+              {timeSlots.map((time) => (
+                <option key={time} value={time}>{time}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label htmlFor="preferredTime" className="block text-sm font-medium text-gray-700">
-            Preferred Time
-          </label>
-          <select
-            id="preferredTime"
-            name="preferredTime"
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            value={formData.preferredTime}
-            onChange={handleChange}
-          >
-            <option value="">Select a time</option>
-            {timeSlots.map(time => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Notes (Optional)
           </label>
           <textarea
-            id="notes"
-            name="notes"
             rows="3"
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+            className="w-full border rounded-md px-3 py-2"
             value={formData.notes}
-            onChange={handleChange}
-          />
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              notes: e.target.value
+            }))}
+          ></textarea>
         </div>
 
-        <div className="flex gap-4">
-          <button
-            type="button"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            onClick={() => document.getElementById('test-drive-modal').close()}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Schedule Test Drive
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+          disabled={loading}
+        >
+          {loading ? 'Scheduling...' : 'Schedule Test Drive'}
+        </button>
       </form>
     </div>
   )
