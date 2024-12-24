@@ -274,34 +274,39 @@ const renderDay = (day) => {
        </div>
 
        <div className="flex items-center justify-between mb-4">
-         <div>
-           <button
-             onClick={() => setCurrentMonth(new Date())}
-             className="px-3 py-1 bg-gray-100 rounded-md text-sm mr-2"
-           >
-             Today
-           </button>
-           <span className="text-lg font-semibold">
-             {format(currentMonth, 'MMMM yyyy')}
-           </span>
-         </div>
-         <div className="flex gap-2">
-           <button
-             onClick={() => {
-               setCurrentMonth(prev => new Date(prev.setMonth(prev.getMonth() - 1)))
-             }}
-             className="p-2 hover:bg-gray-100 rounded-md"
-           >
-             <ChevronLeft className="w-5 h-5" />
-           </button>
-           <button
-             onClick={() => {
-               setCurrentMonth(prev => new Date(prev.setMonth(prev.getMonth() + 1)))
-             }}
-             className="p-2 hover:bg-gray-100 rounded-md"
-           >
-             <ChevronRight className="w-5 h-5" />
-           </button>
+         <button
+  onClick={() => {
+    setCurrentMonth(new Date())  // This is fine for "Today" button
+  }}
+  className="px-3 py-1 bg-gray-100 rounded-md text-sm mr-2"
+>
+  Today
+</button>
+<span className="text-lg font-semibold">
+  {format(currentMonth, 'MMMM yyyy')}
+</span>
+
+<div className="flex gap-2">
+  <button
+    onClick={() => {
+      const newDate = new Date(currentMonth);
+      newDate.setMonth(newDate.getMonth() - 1);
+      setCurrentMonth(newDate);
+    }}
+    className="p-2 hover:bg-gray-100 rounded-md"
+  >
+    <ChevronLeft className="w-5 h-5" />
+  </button>
+  <button
+    onClick={() => {
+      const newDate = new Date(currentMonth);
+      newDate.setMonth(newDate.getMonth() + 1);
+      setCurrentMonth(newDate);
+    }}
+    className="p-2 hover:bg-gray-100 rounded-md"
+  >
+    <ChevronRight className="w-5 h-5" />
+  </button>
          </div>
        </div>
 
