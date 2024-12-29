@@ -14,7 +14,7 @@ export default function AppointmentModal({
 }) {
   const [vehicles, setVehicles] = useState([])
   
-  // 1) New state for blocked times
+  const [error, setError] = useState("");
   const [blockedTimes, setBlockedTimes] = useState([])
 
   const [formData, setFormData] = useState({
@@ -27,7 +27,10 @@ export default function AppointmentModal({
       : selectedDate?.toISOString().split('T')[0] || '',
     time: appointment?.time || '09:00',
     status: appointment?.status || 'PENDING',
-    notes: appointment?.notes || ''
+    notes: appointment?.notes || '',
+    source: appointment?.source || '',
+    cancellationReason: appointment?.cancellationReason || '' // Add this line
+
   })
   const [loading, setLoading] = useState(false)
 
@@ -68,8 +71,22 @@ export default function AppointmentModal({
     e.preventDefault()
     setLoading(true)
     
-    // Convert local date to UTC while preserving the intended day
-    const localDate = new Date(formData.date + 'T' + formData.time)
+    const convert12to24 = (time12h) => {
+      const [time, modifier] = time12h.split(' ');
+      let [hours] = time.split(':');
+      hours = parseInt(hours);
+
+      if (hours === 12) {
+        hours = modifier === 'PM' ? 12 : 0;
+      } else {
+        hours = modifier === 'PM' ? hours + 12 : hours;
+      }
+
+      return `${hours.toString().padStart(2, '0')}:00`;
+    };
+    
+    const time24 = convert12to24(formData.time);
+    const localDate = new Date(formData.date + 'T' + time24)
     const utcDate = new Date(Date.UTC(
       localDate.getFullYear(),
       localDate.getMonth(),
@@ -92,21 +109,25 @@ export default function AppointmentModal({
         },
         body: JSON.stringify({
           ...formData,
+          time: time24,
           date: utcDate.toISOString()
         })
       })
    
-      if (!res.ok) throw new Error('Failed to save appointment')
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData?.error || "Failed to save appointment");
+      }
    
       onSave()
       onClose()
     } catch (error) {
       console.error('Error saving appointment:', error)
+      setError(error.message) // Add error state to display the message
     } finally {
       setLoading(false)
     }
-  }
-
+}
   const handleDelete = async () => {
     if (!appointment || !window.confirm('Are you sure you want to delete this appointment?')) {
       return;
@@ -130,10 +151,10 @@ export default function AppointmentModal({
   };
 
   // Available time slots (9 AM to 7 PM)
-  const timeSlots = []
-  for (let hour = 9; hour <= 19; hour++) {
-    timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
-  }
+  const timeSlots = Array.from({ length: 11 }, (_, i) => {
+    const hour = i + 9;
+    return `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+  });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -146,6 +167,11 @@ export default function AppointmentModal({
             <X className="w-6 h-6" />
           </button>
         </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -222,7 +248,26 @@ export default function AppointmentModal({
                 <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
-
+            {formData.status === 'CANCELLED' && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Cancellation Reason
+    </label>
+    <select
+      required
+      className="w-full border rounded-md px-3 py-2"
+      value={formData.cancellationReason || ''}
+      onChange={(e) => setFormData(prev => ({ ...prev, cancellationReason: e.target.value }))}
+    >
+      <option value="">Select reason</option>
+      <option value="CUSTOMER_REQUEST">Customer Request</option>
+      <option value="VEHICLE_SOLD">Vehicle Sold</option>
+      <option value="NO_SHOW">No Show</option>
+      <option value="RESCHEDULED">Rescheduled</option>
+      <option value="OTHER">Other</option>
+    </select>
+  </div>
+)}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date
@@ -264,7 +309,32 @@ export default function AppointmentModal({
               </select>
             </div>
           </div>
-
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Lead Source
+  </label>
+  {formData.source === 'WEBSITE' ? (
+    // Locked display for website appointments
+    <div className="w-full px-3 py-2 bg-gray-100 border rounded-md text-gray-600">
+      Website
+    </div>
+  ) : (
+    // Regular select for admin-created appointments
+    <select
+      required
+      className="w-full border rounded-md px-3 py-2"
+      value={formData.source}
+      onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
+    >
+      <option value="">Select source</option>
+      <option value="OFFERUP">OfferUp</option>
+      <option value="FACEBOOK">Facebook Marketplace</option>
+      <option value="FRIEND">Friend Referral</option>
+      <option value="AD">Advertisement</option>
+      <option value="OTHER">Other</option>
+    </select>
+  )}
+</div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Notes

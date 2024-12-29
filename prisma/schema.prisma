@@ -34,21 +34,40 @@ model Vehicle {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   testDrives    TestDrive[]
+  soldDate  DateTime?
+  soldPrice Decimal?
 }
 
 model TestDrive {
   id           String    @id @default(cuid())
   vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
   vehicleId    String
+  customer     Customer? @relation(fields: [customerId], references: [id])  // Add this line
+  customerId   String?   // Add this line - optional since not all test drives might have a customer
   customerName String
   email        String
   phone        String
   date         DateTime
   time         String
   status       AppointmentStatus @default(PENDING)
+  source       String?
   notes        String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  reminderSent Boolean   @default(false)
+  cancellationReason String?
+}
+
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  testDrives TestDrive[]
 }
 
 model BlockedTimeSlot {
@@ -85,4 +104,18 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+model MonthlyMetric {
+  id                    String   @id @default(cuid())
+  month                 DateTime
+  totalAppointments     Int
+  websiteAppointments   Int
+  otherAppointments     Int
+  totalVehiclesSold     Int
+  websiteDriveSales     Int
+  otherSourceSales      Int
+  totalRevenue          Decimal
+  cancelledAppointments Int
+  createdAt             DateTime @default(now())
 }

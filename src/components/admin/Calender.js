@@ -202,29 +202,34 @@ const renderDay = (day) => {
           </div>
         ))}
 
-        {dayAppointments.map((appt) => (
-          <div
-            key={appt.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAppointmentClick(appt);
-            }}
-            className={`
-              text-xs p-1 rounded flex items-center gap-1
-              cursor-pointer hover:opacity-75
-              ${getStatusColor(appt.status)}
-            `}
-          >
-            {getStatusIcon(appt.status)}
-            <span>{appt.time}</span>
-            <span className="truncate">
-              {appt.customerName}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+{dayAppointments.map((appt) => (
+ <div
+   key={appt.id}
+   onClick={(e) => {
+     e.stopPropagation();
+     handleAppointmentClick(appt);
+   }}
+   className={`
+     text-xs p-1 rounded flex items-center gap-1
+     cursor-pointer hover:opacity-75
+     ${getStatusColor(appt.status)}
+   `}
+ >
+   {getStatusIcon(appt.status)}
+   <span>
+     {(() => {
+       const hour = parseInt(appt.time.split(':')[0]);
+       return `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+     })()}
+   </span>
+   <span className="truncate">
+     {appt.customerName}
+   </span>
+ </div>
+))}
+     </div>
+   </div>
+ );
 };
 
  return (

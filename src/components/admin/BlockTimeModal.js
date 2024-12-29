@@ -15,10 +15,10 @@ export default function BlockTimeModal({ date, onClose, onSave }) {
       blockFullDay: false
     })
 
-  const timeSlots = []
-  for (let hour = 9; hour <= 19; hour++) {
-    timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
-  }
+    const timeSlots = Array.from({ length: 11 }, (_, i) => {
+      const hour = i + 9;
+      return `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault()

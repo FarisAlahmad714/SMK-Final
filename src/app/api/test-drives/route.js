@@ -109,6 +109,8 @@ export async function POST(request) {
         time: data.time,
         status: 'PENDING',
         notes: data.notes,
+        source: data.source // Add this
+
       },
       include: {
         vehicle: true,
@@ -132,5 +134,50 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error:', error);
     return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+  }
+}
+// src/app/api/test-drives/route.js
+// Keep your existing imports and GET/POST methods
+
+export async function PUT(request) {
+  try {
+    const url = new URL(request.url);
+    const id = url.pathname.split('/').pop(); // Get the ID from the URL
+    const data = await request.json();
+    
+    const pstDate = new Date(data.date).toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles'
+    });
+
+    // Prepare the update data
+    const updateData = {
+      vehicle: {
+        connect: { id: data.vehicleId }  // This is how we handle relations in Prisma
+      },
+      customerName: data.customerName,
+      email: data.email,
+      phone: data.phone,
+      date: new Date(pstDate),
+      time: data.time,
+      status: data.status,
+      notes: data.notes,
+      source: data.source,
+      cancellationReason: data.cancellationReason
+    };
+
+    const appointment = await prisma.testDrive.update({
+      where: {
+        id: id
+      },
+      data: updateData,
+      include: {
+        vehicle: true
+      }
+    });
+
+    return NextResponse.json(appointment);
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    return NextResponse.json({ error: 'Failed to update appointment' }, { status: 500 });
   }
 }

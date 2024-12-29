@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.js
 'use client'
 import { createContext, useContext, useState } from 'react'
 
@@ -8,7 +7,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
 
   const login = async (email, password) => {
-    // For now, let's do a simple check
     if (email === 'admin@smkauto.com' && password === 'admin123') {
       setUser({ email })
       return true
@@ -16,8 +14,17 @@ export function AuthProvider({ children }) {
     return false
   }
 
-  const logout = () => {
-    setUser(null)
+  const logout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST' })
+      if (response.ok) {
+        setUser(null)
+      } else {
+        console.error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
   }
 
   return (

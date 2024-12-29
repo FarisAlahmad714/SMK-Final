@@ -136,6 +136,7 @@ export default function ContactForm() {
             onChange={handleChange}
           />
         </div>
+
         <div>
           <label
             htmlFor="phone"
@@ -153,6 +154,7 @@ export default function ContactForm() {
             onChange={handleChange}
           />
         </div>
+
         <div>
           <label
             htmlFor="message"

@@ -8,8 +8,9 @@ export async function POST(request) {
 
     // Send emails using your email utility
     await sendContactFormEmails({
-      name: data.fullName, // Note we use fullName to match your form data
+      name: data.fullName,
       email: data.email,
+      phone: data.phone,
       message: data.message
     });
 

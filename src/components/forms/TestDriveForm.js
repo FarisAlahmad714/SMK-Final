@@ -19,10 +19,10 @@ export default function TestDriveForm({ vehicle, onClose }) {
   const [blockedTimes, setBlockedTimes] = useState([]);
 
   // Generate all time slots (9 AM to 7 PM)
-  const allTimeSlots = [];
-  for (let hour = 9; hour <= 19; hour++) {
-    allTimeSlots.push(`${hour.toString().padStart(2, "0")}:00`);
-  }
+  const allTimeSlots = Array.from({ length: 11 }, (_, i) => {
+    const hour = i + 9;
+    return `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+  });
 
   // Fetch blocked times whenever date changes
   useEffect(() => {
@@ -64,21 +64,23 @@ export default function TestDriveForm({ vehicle, onClose }) {
     setError("");
     setSuccess(false);
   
-    // Check if the selected time is blocked
-    const isTimeBlocked = blockedTimes.some(block => 
-      isSameDay(parseISO(block.date), new Date(formData.date)) &&
-      formData.time >= block.startTime &&
-      formData.time <= block.endTime
-    );
+    // Convert 12-hour time back to 24-hour format for server
+    const convert12to24 = (time12h) => {
+      const [time, modifier] = time12h.split(' ');
+      let [hours] = time.split(':');
+      hours = parseInt(hours);
   
-    if (isTimeBlocked) {
-      setError("This time slot is no longer available. Please select another time.");
-      setLoading(false);
-      return;
-    }
+      if (hours === 12) {
+        hours = modifier === 'PM' ? 12 : 0;
+      } else {
+        hours = modifier === 'PM' ? hours + 12 : hours;
+      }
+  
+      return `${hours.toString().padStart(2, '0')}:00`;
+    };
   
     // Convert local date to UTC while preserving the intended day
-    const localDate = new Date(formData.date + "T" + formData.time);
+    const localDate = new Date(formData.date + "T" + convert12to24(formData.time));
     const utcDate = new Date(
       Date.UTC(
         localDate.getFullYear(),
@@ -92,6 +94,8 @@ export default function TestDriveForm({ vehicle, onClose }) {
     // Prepare data to send
     const data = {
       ...formData,
+      time: convert12to24(formData.time), // Convert time back to 24-hour format
+      source: "WEBSITE", 
       vehicleId: vehicle.id, 
       date: utcDate.toISOString(),
     };
