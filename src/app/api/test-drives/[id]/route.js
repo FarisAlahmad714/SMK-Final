@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 
 export async function PUT(request, { params }) {
   try {
-    const id = await params.id; // Await the id
+    const id = await params.id;
     const data = await request.json();
     const date = new Date(data.date);
 
@@ -12,18 +12,40 @@ export async function PUT(request, { params }) {
       timeZone: 'America/Los_Angeles'
     }));
 
-    // First check if the testDrive exists (good practice)
-    const existingTestDrive = await prisma.testDrive.findUnique({
-      where: { id }
+    // Find or create customer
+    let customer = await prisma.customer.findFirst({
+      where: {
+        email: data.email
+      }
     });
 
-    if (!existingTestDrive) {
-      return NextResponse.json({ error: 'Test drive not found' }, { status: 404 });
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          name: data.customerName,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes || ''
+        }
+      });
+    } else {
+      // Update existing customer information
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          name: data.customerName,
+          phone: data.phone,
+          notes: data.notes || ''
+        }
+      });
     }
 
     const updateData = {
       vehicle: {
         connect: { id: data.vehicleId }
+      },
+      customer: {
+        connect: { id: customer.id }
       },
       customerName: data.customerName,
       email: data.email,
@@ -35,7 +57,6 @@ export async function PUT(request, { params }) {
       notes: data.notes
     };
 
-    // Only add cancellationReason if status is CANCELLED
     if (data.status === 'CANCELLED' && data.cancellationReason) {
       updateData.cancellationReason = data.cancellationReason;
     }
@@ -44,7 +65,8 @@ export async function PUT(request, { params }) {
       where: { id },
       data: updateData,
       include: {
-        vehicle: true
+        vehicle: true,
+        customer: true
       }
     });
 

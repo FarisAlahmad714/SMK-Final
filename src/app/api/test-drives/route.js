@@ -1,3 +1,4 @@
+// src/app/api/test-drives/route.js
 import { format } from 'date-fns';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
@@ -12,7 +13,6 @@ export async function GET(request) {
     let whereClause = {};
 
     if (start && end) {
-      // Convert UTC dates to PST
       const startPST = new Date(start).toLocaleString('en-US', {
         timeZone: 'America/Los_Angeles',
       });
@@ -30,13 +30,13 @@ export async function GET(request) {
       where: whereClause,
       include: {
         vehicle: true,
+        customer: true
       },
       orderBy: {
         date: 'asc',
       },
     });
 
-    // Convert dates back to local time for client
     const formattedAppointments = appointments.map((apt) => ({
       ...apt,
       date: new Date(apt.date).toLocaleString('en-US', {
@@ -56,7 +56,6 @@ export async function POST(request) {
     const data = await request.json();
     const date = new Date(data.date);
 
-    // Convert to PST before checking conflicts
     const pstDate = new Date(date.toLocaleString('en-US', {
       timeZone: 'America/Los_Angeles',
     }));
@@ -99,9 +98,28 @@ export async function POST(request) {
       );
     }
 
+    // Find or create customer
+    let customer = await prisma.customer.findFirst({
+      where: {
+        email: data.email
+      }
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          name: data.customerName,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes || ''
+        }
+      });
+    }
+
     const appointment = await prisma.testDrive.create({
       data: {
         vehicleId: data.vehicleId,
+        customerId: customer.id,
         customerName: data.customerName,
         email: data.email,
         phone: data.phone,
@@ -109,11 +127,11 @@ export async function POST(request) {
         time: data.time,
         status: 'PENDING',
         notes: data.notes,
-        source: data.source // Add this
-
+        source: data.source
       },
       include: {
         vehicle: true,
+        customer: true
       },
     });
 
@@ -127,7 +145,6 @@ export async function POST(request) {
       });
     } catch (emailError) {
       console.error('Error sending emails:', emailError);
-      // Continue even if email fails
     }
 
     return NextResponse.json(appointment, { status: 201 });
@@ -136,24 +153,49 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
   }
 }
-// src/app/api/test-drives/route.js
-// Keep your existing imports and GET/POST methods
 
 export async function PUT(request) {
   try {
     const url = new URL(request.url);
-    const id = url.pathname.split('/').pop(); // Get the ID from the URL
+    const id = url.pathname.split('/').pop();
     const data = await request.json();
     
     const pstDate = new Date(data.date).toLocaleString('en-US', {
       timeZone: 'America/Los_Angeles'
     });
 
-    // Prepare the update data
+    // Find or create customer
+    let customer = await prisma.customer.findFirst({
+      where: {
+        email: data.email
+      }
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          name: data.customerName,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes || ''
+        }
+      });
+    } else {
+      // Update existing customer info
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          name: data.customerName,
+          phone: data.phone
+        }
+      });
+    }
+
     const updateData = {
       vehicle: {
-        connect: { id: data.vehicleId }  // This is how we handle relations in Prisma
+        connect: { id: data.vehicleId }
       },
+      customerId: customer.id,
       customerName: data.customerName,
       email: data.email,
       phone: data.phone,
@@ -161,9 +203,12 @@ export async function PUT(request) {
       time: data.time,
       status: data.status,
       notes: data.notes,
-      source: data.source,
-      cancellationReason: data.cancellationReason
+      source: data.source
     };
+
+    if (data.status === 'CANCELLED' && data.cancellationReason) {
+      updateData.cancellationReason = data.cancellationReason;
+    }
 
     const appointment = await prisma.testDrive.update({
       where: {
@@ -171,7 +216,8 @@ export async function PUT(request) {
       },
       data: updateData,
       include: {
-        vehicle: true
+        vehicle: true,
+        customer: true
       }
     });
 

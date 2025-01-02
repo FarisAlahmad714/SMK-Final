@@ -108,7 +108,7 @@ enum AppointmentStatus {
 
 model MonthlyMetric {
   id                    String   @id @default(cuid())
-  month                 DateTime
+  month                 DateTime @unique  // Add @unique here
   totalAppointments     Int
   websiteAppointments   Int
   otherAppointments     Int

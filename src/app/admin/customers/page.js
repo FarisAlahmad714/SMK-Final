@@ -25,10 +25,6 @@ export default function CustomersPage() {
     }
   };
 
-  if (error) {
-    return <div className="p-8 text-red-500">{error}</div>;
-  }
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -48,7 +44,7 @@ export default function CustomersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Test Drives</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Visit</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -58,9 +54,19 @@ export default function CustomersPage() {
                   <td className="px-6 py-4 whitespace-nowrap">{customer.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{customer.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{customer.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{customer.testDrives?.length || 0}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(customer.createdAt).toLocaleDateString()}
+                    {customer.testDrives.length} 
+                    {customer.testDrives.length > 0 && (
+                      <span className="text-gray-500 text-sm ml-2">
+                        (Latest: {new Date(customer.testDrives[0].date).toLocaleDateString()})
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {customer.testDrives.length > 0 
+                      ? new Date(customer.testDrives[0].date).toLocaleDateString()
+                      : 'N/A'
+                    }
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button 

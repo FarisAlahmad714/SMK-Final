@@ -11,6 +11,8 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendAppointmentEmails({ customerName, email, date, time, vehicle }) {
+  const logoUrl = `${process.env.NEXT_PUBLIC_WEBSITE_URL}/images/hero1.webp`;
+
   // Email to customer
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
@@ -20,7 +22,7 @@ export async function sendAppointmentEmails({ customerName, email, date, time, v
       <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
-            <img src="https://your-company-logo-url.com" alt="SMK Auto Logo" style="max-width: 200px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
           </div>
           <div style="padding: 40px;">
             <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">Your Test Drive Awaits!</h1>
@@ -54,7 +56,7 @@ export async function sendAppointmentEmails({ customerName, email, date, time, v
       <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
-            <img src="https://your-company-logo-url.com" alt="SMK Auto Logo" style="max-width: 200px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
           </div>
           <div style="padding: 40px;">
             <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">New Test Drive Appointment</h1>
@@ -78,17 +80,20 @@ export async function sendAppointmentEmails({ customerName, email, date, time, v
 }
 
 export async function sendContactFormEmails({ name, email, phone, message }) {
+  const logoUrl = `${process.env.NEXT_PUBLIC_WEBSITE_URL}/images/hero1.webp`;
+
   // Email to person who submitted form
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'Thank You for Contacting SMK Auto',
     html: `
-      <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+     <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
-            <img src="https://your-company-logo-url.com" alt="SMK Auto Logo" style="max-width: 200px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
           </div>
+
           <div style="padding: 40px;">
             <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">We Appreciate Your Message!</h1>
             <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">Dear ${name},</p>
@@ -116,7 +121,7 @@ export async function sendContactFormEmails({ name, email, phone, message }) {
       <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
-            <img src="https://your-company-logo-url.com" alt="SMK Auto Logo" style="max-width: 200px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
           </div>
           <div style="padding: 40px;">
             <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">New Contact Form Message</h1>

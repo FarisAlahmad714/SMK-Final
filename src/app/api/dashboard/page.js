@@ -1,79 +1,114 @@
 // src/app/admin/dashboard/page.js
 'use client';
 import { useState, useEffect } from 'react';
-import { Bar } from 'recharts';
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState(null);
-  const [timeframe, setTimeframe] = useState('month'); // month, quarter, year
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [metrics, setMetrics] = useState({
+    totalRevenue: 0,
+    websiteAppointments: 0,
+    otherAppointments: 0,
+    totalVehiclesSold: 0,
+    websiteDriveSales: 0,
+    otherSourceSales: 0,
+    activeInventory: 0,
+    totalCustomers: 0,
+    cancelledAppointments: 0
+  });
 
-  // Add detailed metrics sections
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  const fetchMetrics = async () => {
+    try {
+      const res = await fetch('/api/dashboard/metrics');
+      if (!res.ok) {
+        throw new Error('Failed to fetch metrics');
+      }
+      const data = await res.json();
+      setMetrics(data);
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+      setError('Failed to load dashboard metrics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (error) return <div className="p-8 text-red-500">{error}</div>;
+
   return (
     <div className="p-8">
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      
+      {/* Top Cards */}
       <div className="grid grid-cols-3 gap-6 mb-8">
-        {/* Total Stats */}
-        <MetricCard
-          title="Total Revenue"
-          value={`$${metrics?.totalRevenue.toLocaleString()}`}
-          trend={metrics?.revenueTrend}
+        <MetricCard 
+          title="Total Revenue" 
+          value={`$${metrics.totalRevenue.toLocaleString()}`}
         />
-        <MetricCard
-          title="Vehicles Sold"
-          value={metrics?.totalVehiclesSold}
-          trend={metrics?.salesTrend}
+        <MetricCard 
+          title="Active Inventory" 
+          value={metrics.activeInventory}
         />
-        <MetricCard
-          title="Active Inventory"
-          value={metrics?.activeInventory}
+        <MetricCard 
+          title="Total Customers" 
+          value={metrics.totalCustomers}
         />
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* Sales Breakdown */}
+        {/* Appointments */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium mb-4">Sales by Source</h3>
-          <div className="space-y-4">
+          <h3 className="text-lg font-medium mb-4">Appointments</h3>
+          <div className="space-y-3">
             <div className="flex justify-between">
-              <span>Website Test Drives</span>
-              <span>{metrics?.websiteDriveSales}</span>
+              <span>Website Bookings</span>
+              <span>{metrics.websiteAppointments}</span>
             </div>
             <div className="flex justify-between">
               <span>Other Sources</span>
-              <span>{metrics?.otherSourceSales}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Appointments */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium mb-4">Appointment Status</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span>Completed</span>
-              <span>{metrics?.completedAppointments}</span>
+              <span>{metrics.otherAppointments}</span>
             </div>
             <div className="flex justify-between">
               <span>Cancelled</span>
-              <span>{metrics?.cancelledAppointments}</span>
+              <span>{metrics.cancelledAppointments}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sales */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium mb-4">Sales</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span>Website Test Drive Sales</span>
+              <span>{metrics.websiteDriveSales}</span>
             </div>
             <div className="flex justify-between">
-              <span>Pending</span>
-              <span>{metrics?.pendingAppointments}</span>
+              <span>Other Source Sales</span>
+              <span>{metrics.otherSourceSales}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Total Vehicles Sold</span>
+              <span>{metrics.totalVehiclesSold}</span>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Charts */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium mb-4">Monthly Performance</h3>
-        <Bar
-          data={metrics?.monthlyData}
-          width={800}
-          height={300}
-          // ... chart configuration
-        />
-      </div>
+function MetricCard({ title, value }) {
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-sm text-gray-500 mb-1">{title}</h3>
+      <p className="text-2xl font-bold">{value}</p>
     </div>
   );
 }
