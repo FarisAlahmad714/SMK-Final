@@ -119,3 +119,19 @@ model MonthlyMetric {
   cancelledAppointments Int
   createdAt             DateTime @default(now())
 }
+
+
+// prisma/schema.prisma
+
+model VehicleSubmission {
+  id              String   @id @default(cuid())
+  type            String   // 'sell' or 'trade'
+  vin             String
+  vehicleDetails  Json
+  condition       Json
+  ownership       String
+  photoUrls       String[]
+  status          String   // PENDING_REVIEW, APPROVED, REJECTED, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

@@ -1,3 +1,4 @@
+// src/app/components/Hero.js
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -45,18 +46,24 @@ export default function Hero() {
           SMK-Auto
         </h1>
         <p className="text-xl md:text-2xl text-white mb-8 max-w-3xl">
-        Drive Into Your Future: Find Your Next Car!
+          Drive Into Your Future: Find Your Next Car!
         </p>
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap justify-center gap-4">
           <Link
             href="/vehicles"
-            className="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
             View Inventory
           </Link>
           <Link
+            href="/sell-trade"
+            className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            Sell/Trade Vehicle
+          </Link>
+          <Link
             href="/contact"
-            className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-md hover:bg-white/10 transition-colors"
+            className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
             Contact Us
           </Link>

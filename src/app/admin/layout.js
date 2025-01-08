@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Car, Calendar,Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, Car, Calendar, Users, LogOut, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -12,7 +12,7 @@ export default function AdminLayout({ children }) {
       const response = await fetch('/api/auth/logout', { method: 'POST' })
       if (response.ok) {
         document.cookie = 'admin-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-        router.push('/admin') // Redirect to login page
+        router.push('/admin')
       } else {
         console.error('Logout failed')
       }
@@ -21,7 +21,6 @@ export default function AdminLayout({ children }) {
     }
   }
 
-  // Only show sidebar if not on login page
   if (pathname === '/admin') {
     return children
   }
@@ -70,6 +69,7 @@ export default function AdminLayout({ children }) {
             <Calendar className="w-5 h-5 mr-3" />
             Test Drives
           </Link>
+
           <Link
             href="/admin/customers"
             className={`flex items-center px-6 py-3 ${
@@ -80,6 +80,18 @@ export default function AdminLayout({ children }) {
           >
             <Users className="w-5 h-5 mr-3" />
             Customers
+          </Link>
+
+          <Link
+            href="/admin/sell-trade"
+            className={`flex items-center px-6 py-3 ${
+              pathname === '/admin/sell-trade'
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
+            }`}
+          >
+            <RefreshCw className="w-5 h-5 mr-3" />
+            Sell/Trade
           </Link>
 
           <button

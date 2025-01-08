@@ -1,17 +1,26 @@
 // src/lib/email.js
 import nodemailer from 'nodemailer';
 
-// Create transporter with Gmail
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD // This needs to be an App Password from Google
+    pass: process.env.EMAIL_APP_PASSWORD
   }
 });
 
-export async function sendAppointmentEmails({ customerName, email, date, time, vehicle }) {
+// Utility function to format time to AM/PM
+const formatTime = (time) => {
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minutes} ${ampm}`;
+};
+
+export async function sendAppointmentEmails({ customerName, email, date, time, vehicle, notes }) {
   const logoUrl = `${process.env.NEXT_PUBLIC_WEBSITE_URL}/images/hero1.webp`;
+  const formattedTime = formatTime(time);
 
   // Email to customer
   await transporter.sendMail({
@@ -31,7 +40,7 @@ export async function sendAppointmentEmails({ customerName, email, date, time, v
             <div style="background-color: #f7fafc; padding: 30px; border-radius: 5px; margin-bottom: 40px; border: 1px solid #e2e8f0;">
               <p style="font-size: 20px; line-height: 1.6; color: #4a5568;">
                 <strong style="color: #1a202c;">Date:</strong> ${date}<br>
-                <strong style="color: #1a202c;">Time:</strong> ${time}<br>
+                <strong style="color: #1a202c;">Time:</strong> ${formattedTime}<br>
                 <strong style="color: #1a202c;">Vehicle:</strong> ${vehicle.year} ${vehicle.make} ${vehicle.model}
               </p>
             </div>
@@ -65,13 +74,87 @@ export async function sendAppointmentEmails({ customerName, email, date, time, v
                 <strong style="color: #1a202c;">Customer:</strong> ${customerName}<br>
                 <strong style="color: #1a202c;">Email:</strong> ${email}<br>
                 <strong style="color: #1a202c;">Date:</strong> ${date}<br>
-                <strong style="color: #1a202c;">Time:</strong> ${time}<br>
+                <strong style="color: #1a202c;">Time:</strong> ${formattedTime}<br>
+                <strong style="color: #1a202c;">Vehicle:</strong> ${vehicle.year} ${vehicle.make} ${vehicle.model}
+              </p>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <strong style="color: #1a202c;">Customer Notes:</strong><br>
+                <p style="font-size: 18px; line-height: 1.6; color: #4a5568; background-color: #fff; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                  ${notes ? notes : 'No notes provided'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+            <p style="font-size: 18px; line-height: 1.6; color: #ffffff; margin-bottom: 0;">Please ensure the vehicle is prepared for the test drive.</p>
+          </div>
+        </div>
+      </div>
+    `
+  });
+}
+
+export async function sendReminderEmails({ customerName, email, date, time, vehicle }) {
+  const logoUrl = `${process.env.NEXT_PUBLIC_WEBSITE_URL}/images/hero1.webp`;
+  const formattedTime = formatTime(time);
+
+  // Customer reminder
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Reminder: Your Test Drive Appointment Tomorrow',
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
+          </div>
+          <div style="padding: 40px;">
+            <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">Test Drive Reminder</h1>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">Dear ${customerName},</p>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">This is a friendly reminder about your test drive appointment tomorrow with SMK Auto.</p>
+            <div style="background-color: #f7fafc; padding: 30px; border-radius: 5px; margin-bottom: 40px; border: 1px solid #e2e8f0;">
+              <p style="font-size: 20px; line-height: 1.6; color: #4a5568;">
+                <strong style="color: #1a202c;">Date:</strong> ${date}<br>
+                <strong style="color: #1a202c;">Time:</strong> ${formattedTime}<br>
+                <strong style="color: #1a202c;">Vehicle:</strong> ${vehicle.year} ${vehicle.make} ${vehicle.model}
+              </p>
+            </div>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; text-align: center;">We look forward to seeing you tomorrow!</p>
+          </div>
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+            <p style="font-size: 18px; line-height: 1.6; color: #ffffff; margin-bottom: 0;">Best regards,<br>The SMK Auto Team</p>
+          </div>
+        </div>
+      </div>
+    `
+  });
+
+  // Admin reminder
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: process.env.ADMIN_EMAIL,
+    subject: 'Reminder: Test Drive Appointment Tomorrow',
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
+          </div>
+          <div style="padding: 40px;">
+            <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">Test Drive Reminder</h1>
+            <div style="background-color: #f7fafc; padding: 30px; border-radius: 5px; border: 1px solid #e2e8f0;">
+              <p style="font-size: 20px; line-height: 1.6; color: #4a5568;">
+                <strong style="color: #1a202c;">Customer:</strong> ${customerName}<br>
+                <strong style="color: #1a202c;">Email:</strong> ${email}<br>
+                <strong style="color: #1a202c;">Date:</strong> ${date}<br>
+                <strong style="color: #1a202c;">Time:</strong> ${formattedTime}<br>
                 <strong style="color: #1a202c;">Vehicle:</strong> ${vehicle.year} ${vehicle.make} ${vehicle.model}
               </p>
             </div>
           </div>
           <div style="background-color: #1a202c; padding: 30px; text-align: center; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
-            <p style="font-size: 18px; line-height: 1.6; color: #ffffff; margin-bottom: 0;">Please ensure the vehicle is prepared for the test drive.</p>
+            <p style="font-size: 18px; line-height: 1.6; color: #ffffff; margin-bottom: 0;">Please ensure the vehicle is prepared for tomorrow's test drive.</p>
           </div>
         </div>
       </div>
@@ -93,7 +176,6 @@ export async function sendContactFormEmails({ name, email, phone, message }) {
           <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
             <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
           </div>
-
           <div style="padding: 40px;">
             <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">We Appreciate Your Message!</h1>
             <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">Dear ${name},</p>

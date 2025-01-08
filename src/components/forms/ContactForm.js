@@ -8,6 +8,7 @@ export default function ContactForm() {
     fullName: "",
     email: "",
     phone: "", 
+    vehicleOfInterest: "", 
     message: "",
   });
   const [loading, setLoading] = useState(false);
@@ -154,7 +155,20 @@ export default function ContactForm() {
             onChange={handleChange}
           />
         </div>
-
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Vehicle of Interest (Optional)
+          </label>
+          <input
+            type="text"
+            name="vehicleOfInterest"
+            value={formData.vehicleOfInterest}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-2"
+            placeholder="e.g., 2020 Honda Civic"
+          />
+        </div>
+        
         <div>
           <label
             htmlFor="message"

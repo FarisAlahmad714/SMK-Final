@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { isSameDay, parseISO, format } from "date-fns";
+import { isSameDay, parseISO } from "date-fns";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 export default function TestDriveForm({ vehicle, onClose }) {
+  const router = useRouter(); // Initialize router
+
   const [formData, setFormData] = useState({
     customerName: "",
     email: "",
@@ -115,12 +118,19 @@ export default function TestDriveForm({ vehicle, onClose }) {
       }
   
       setSuccess(true);
+  
+      // Redirect to home after a brief delay (e.g., 3 seconds)
+      setTimeout(() => {
+        router.push("/");
+      }, 3000); // 3000 milliseconds = 3 seconds
+  
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+  
 
   if (success) {
     return (
@@ -131,8 +141,14 @@ export default function TestDriveForm({ vehicle, onClose }) {
         <p className="text-gray-600 mb-4">
           We&apos;ll be in touch shortly to confirm your appointment.
         </p>
-        <button onClick={onClose} className="text-blue-600 hover:text-blue-800">
-          Close
+        <p className="text-gray-500 mb-4">
+          Redirecting to home page in 3 seconds...
+        </p>
+        <button 
+          onClick={() => router.push("/")} // Immediate redirection on button click
+          className="text-blue-600 hover:text-blue-800"
+        >
+          Go to Home Now
         </button>
       </div>
     );
@@ -166,7 +182,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
           <input
             type="text"
             required
-            className="w-full border rounded-md px-3 py-2"
+            className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             value={formData.customerName}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, customerName: e.target.value }))
@@ -181,7 +197,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
           <input
             type="email"
             required
-            className="w-full border rounded-md px-3 py-2"
+            className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             value={formData.email}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, email: e.target.value }))
@@ -196,7 +212,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
           <input
             type="tel"
             required
-            className="w-full border rounded-md px-3 py-2"
+            className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             value={formData.phone}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, phone: e.target.value }))
@@ -213,7 +229,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
               type="date"
               required
               min={new Date().toISOString().split("T")[0]}
-              className="w-full border rounded-md px-3 py-2"
+              className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
               value={formData.date}
               onChange={(e) => {
                 setFormData((prev) => ({ 
@@ -236,7 +252,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
             </label>
             <select
               required
-              className="w-full border rounded-md px-3 py-2"
+              className="w-full border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
               value={formData.time}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, time: e.target.value }))
@@ -259,7 +275,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
           </label>
           <textarea
             rows="3"
-            className="w-full border rounded-md px-3 py-2"
+            className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             value={formData.notes}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, notes: e.target.value }))
@@ -269,7 +285,7 @@ export default function TestDriveForm({ vehicle, onClose }) {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+          className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
           disabled={loading || isDateFullyBlocked}
         >
           {loading ? "Scheduling..." : "Schedule Test Drive"}

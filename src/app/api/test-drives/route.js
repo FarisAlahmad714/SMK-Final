@@ -142,11 +142,13 @@ export async function POST(request) {
         date: format(new Date(appointment.date), 'MMMM d, yyyy'),
         time: data.time,
         vehicle: appointment.vehicle,
+        notes: data.notes  // Add this line
       });
     } catch (emailError) {
       console.error('Error sending emails:', emailError);
+      // Optionally, handle email sending failures without failing the entire request
     }
-
+    
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {
     console.error('Error:', error);
