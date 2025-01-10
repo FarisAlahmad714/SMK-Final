@@ -19,55 +19,62 @@ model Admin {
 }
 
 model Vehicle {
-  id            String    @id @default(cuid())
-  stockNumber   String    @unique
-  make          String
-  model         String
-  year          Int
-  price         Float
-  mileage       Int
-  transmission  String
-  exteriorColor String
-  status        Status    @default(AVAILABLE)
-  description   String?
-  images        String[]  // Array of image URLs
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  testDrives    TestDrive[]
-  soldDate  DateTime?
-  soldPrice Decimal?
+  id             String              @id @default(cuid())
+  stockNumber    String              @unique
+  make           String
+  model          String
+  year           Int
+  price          Float               // Listing price
+  cost           Float               // Vehicle purchase cost - NEW FIELD
+  mileage        Int
+  transmission   String
+  exteriorColor  String
+  status         Status              @default(AVAILABLE)
+  description    String?
+  images         String[]    
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  testDrives     TestDrive[]
+  soldDate       DateTime?
+  soldPrice      Decimal?
+  transactions   Transaction[]
+  
+  // Updated relation field with relation name
+  submissions    VehicleSubmission[] @relation("DesiredVehicleRelation")
 }
+
 
 model TestDrive {
-  id           String    @id @default(cuid())
-  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
-  vehicleId    String
-  customer     Customer? @relation(fields: [customerId], references: [id])  // Add this line
-  customerId   String?   // Add this line - optional since not all test drives might have a customer
-  customerName String
-  email        String
-  phone        String
-  date         DateTime
-  time         String
-  status       AppointmentStatus @default(PENDING)
-  source       String?
-  notes        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  reminderSent Boolean   @default(false)
-  cancellationReason String?
+  id                  String             @id @default(cuid())
+  vehicle             Vehicle            @relation(fields: [vehicleId], references: [id])
+  vehicleId           String
+  customer            Customer?          @relation(fields: [customerId], references: [id])
+  customerId          String?            
+  customerName        String
+  email               String
+  phone               String
+  date                DateTime
+  time                String
+  status              AppointmentStatus  @default(PENDING)
+  source              String?
+  notes               String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  reminderSent        Boolean            @default(false)
+  cancellationReason  String?
 }
 
-
 model Customer {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  testDrives TestDrive[]
+  id          String      @id @default(cuid())
+  name        String
+  email       String      @unique
+  phone       String
+  source      String?     // Add this field - can be 'WEBSITE', 'WALK_IN', etc.
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  testDrives  TestDrive[]
+  transactions Transaction[]
 }
 
 model BlockedTimeSlot {
@@ -89,6 +96,59 @@ model Contact {
   read      Boolean  @default(false)
 }
 
+model MonthlyMetric {
+  id                    String   @id @default(cuid())
+  month                 DateTime @unique
+  totalAppointments     Int      @default(0)
+  websiteAppointments   Int      @default(0)
+  otherAppointments     Int      @default(0)
+  totalVehiclesSold     Int      @default(0)
+  websiteDriveSales     Int      @default(0)
+  otherSourceSales      Int      @default(0)
+  totalRevenue          Float    @default(0)  // Total of all sale prices
+  totalVehicleCosts     Float    @default(0)  // Total of all costs
+  netProfit             Float    @default(0)  
+  profitMargin          Float    @default(0) 
+  cancelledAppointments Int      @default(0)
+  activeInventory       Int      @default(0)
+  totalCustomers        Int      @default(0)
+  totalVehicles         Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model VehicleSubmission {
+  id               String   @id @default(cuid())
+  type             String   // 'sell' or 'trade'
+  vin              String
+  vehicleDetails   Json
+  condition        Json
+  ownership        String
+  desiredVehicleId String?  // Nullable: Only applicable for 'trade' submissions
+  desiredVehicle   Vehicle? @relation("DesiredVehicleRelation", fields: [desiredVehicleId], references: [id])
+  photoUrls        String[]
+  status           String   // PENDING_REVIEW, APPROVED, REJECTED, etc.
+  notes            String?  // Added field
+  customerInfo     Json?    // Added field (assuming it's a JSON object)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+
+
+model Transaction {
+  id           String    @id @default(cuid())
+  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
+  vehicleId    String
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  customerId   String
+  salePrice    Float
+  profit       Float
+  profitMargin Float
+  date         DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
 enum Role {
   ADMIN
   SUPERADMIN
@@ -104,34 +164,4 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   CANCELLED
-}
-
-model MonthlyMetric {
-  id                    String   @id @default(cuid())
-  month                 DateTime @unique  // Add @unique here
-  totalAppointments     Int
-  websiteAppointments   Int
-  otherAppointments     Int
-  totalVehiclesSold     Int
-  websiteDriveSales     Int
-  otherSourceSales      Int
-  totalRevenue          Decimal
-  cancelledAppointments Int
-  createdAt             DateTime @default(now())
-}
-
-
-// prisma/schema.prisma
-
-model VehicleSubmission {
-  id              String   @id @default(cuid())
-  type            String   // 'sell' or 'trade'
-  vin             String
-  vehicleDetails  Json
-  condition       Json
-  ownership       String
-  photoUrls       String[]
-  status          String   // PENDING_REVIEW, APPROVED, REJECTED, etc.
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 }

@@ -15,6 +15,7 @@ export default function SellTradePage() {
     intent: '',
     vin: '',
     vehicleDetails: null,
+    desiredVehicleId: '', // New field added here
     ownership: '',
     condition: {
       color: '',
@@ -85,31 +86,31 @@ export default function SellTradePage() {
           />
         )}
         {currentStep === 3 && (
-            <ConditionForm 
-                formData={formData}
-                setFormData={setFormData}
-                onNext={nextStep}
-                onPrev={prevStep}
-            />
-            )}
-            {currentStep === 4 && (
-                <PhotoUpload 
-                    formData={formData}
-                    setFormData={setFormData}
-                    onNext={nextStep}
-                    onPrev={prevStep}
-                />
-                )}
-                {currentStep === 5 && (
-                <ReviewSubmit 
-                    formData={formData}
-                    onPrev={prevStep}
-                    onComplete={(data) => {
-                    // Handle successful submission
-                    // Could redirect to a success page or show a success message
-                    }}
-                />
-                )}
+          <ConditionForm 
+            formData={formData}
+            setFormData={setFormData}
+            onNext={nextStep}
+            onPrev={prevStep}
+          />
+        )}
+        {currentStep === 4 && (
+          <PhotoUpload 
+            formData={formData}
+            setFormData={setFormData}
+            onNext={nextStep}
+            onPrev={prevStep}
+          />
+        )}
+        {currentStep === 5 && (
+          <ReviewSubmit 
+            formData={formData}
+            onPrev={prevStep}
+            onComplete={(data) => {
+              // Handle successful submission
+              // Could redirect to a success page or show a success message
+            }}
+          />
+        )}
       </div>
     </div>
   );

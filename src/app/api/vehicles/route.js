@@ -14,6 +14,7 @@ export async function POST(request) {
         model: data.model,
         year: parseInt(data.year),
         price: parseFloat(data.price),
+        cost: parseFloat(data.cost), 
         mileage: parseInt(data.mileage),
         transmission: data.transmission,
         exteriorColor: data.exteriorColor,
@@ -45,6 +46,7 @@ export async function GET(request) {
     const minPrice = searchParams.get('minPrice')
     const maxPrice = searchParams.get('maxPrice')
     const year = searchParams.get('year')
+    const status = searchParams.get('status')
 
     // NEW search parameter
     const search = searchParams.get('search')
@@ -64,6 +66,10 @@ export async function GET(request) {
 
     if (year) {
       whereClause.year = parseInt(year)
+    }
+
+    if (status) {
+      whereClause.status = status
     }
 
     // If `search` is provided, search by make OR model (case-insensitive)

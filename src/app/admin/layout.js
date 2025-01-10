@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Car, Calendar, Users, LogOut, RefreshCw } from 'lucide-react'
+import { LayoutDashboard, Car, Calendar, Users, LogOut, RefreshCw, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -80,6 +80,18 @@ export default function AdminLayout({ children }) {
           >
             <Users className="w-5 h-5 mr-3" />
             Customers
+          </Link>
+
+          <Link
+            href="/admin/transactions"
+            className={`flex items-center px-6 py-3 ${
+              pathname === '/admin/transactions'
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
+            }`}
+          >
+            <DollarSign className="w-5 h-5 mr-3" />
+            Transactions
           </Link>
 
           <Link

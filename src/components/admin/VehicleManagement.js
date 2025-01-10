@@ -140,14 +140,21 @@ export default function VehicleManagement() {
                       </h3>
                       <div className="mt-1 text-sm text-gray-500 space-x-4">
                         <span>Stock #{vehicle.stockNumber}</span>
-                        <span>${vehicle.price.toLocaleString()}</span>
-                        <span>{vehicle.mileage.toLocaleString()} miles</span>
-                        <span className={`
-                          inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                        `}>
-                          {vehicle.status}
-                        </span>
+                        <span>Listing Price:{vehicle.price.toLocaleString()}$</span>
+                        <span>Cost:{vehicle.cost.toLocaleString()}$</span>
+                            {vehicle.status === 'SOLD' && vehicle.soldPrice && (
+        <span className="text-green-600 font-medium">
+          Sold Price: ${Number(vehicle.soldPrice).toLocaleString()}
+        </span>
+      )}
+                          <span>{vehicle.mileage.toLocaleString()} miles</span>
+  <span className={`
+    inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+    ${vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 
+      vehicle.status === 'SOLD' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}
+  `}>
+    {vehicle.status}
+  </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">

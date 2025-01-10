@@ -1,4 +1,3 @@
-// src/app/api/dashboard/metrics/route.js
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
@@ -7,12 +6,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get('month');
     
-    const start = dateParam ? new Date(dateParam) : new Date();
-    start.setDate(1); 
-    start.setHours(0, 0, 0, 0);
+    if (!dateParam) {
+      return NextResponse.json(
+        { error: 'Month parameter is required in format yyyy-MM' },
+        { status: 400 }
+      );
+    }
 
-    const end = new Date(start);
-    end.setMonth(end.getMonth() + 1);
+    const date = new Date(dateParam);
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
     // Get all appointments for the month
     const appointments = await prisma.testDrive.findMany({
@@ -24,6 +27,39 @@ export async function GET(request) {
       }
     });
 
+    // Get cancellation reasons breakdown
+    const cancellationReasons = await prisma.testDrive.groupBy({
+      by: ['cancellationReason'],
+      where: {
+        status: 'CANCELLED',
+        date: {
+          gte: start,
+          lt: end
+        },
+        NOT: {
+          cancellationReason: null
+        }
+      },
+      _count: {
+        cancellationReason: true
+      }
+    });
+
+    // Format reasons for display
+    const formattedReasons = cancellationReasons.map(reason => ({
+      reason: reason.cancellationReason.replace(/_/g, ' ').toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' '),
+      count: reason._count.cancellationReason
+    }));
+
+    // Calculate appointment metrics
+    const totalAppointments = appointments.length;
+    const websiteAppointments = appointments.filter(apt => apt.source === 'WEBSITE').length;
+    const otherAppointments = totalAppointments - websiteAppointments;
+    const cancelledAppointments = appointments.filter(apt => apt.status === 'CANCELLED').length;
+
     // Get all vehicles (for total count)
     const totalVehicles = await prisma.vehicle.count();
 
@@ -34,7 +70,7 @@ export async function GET(request) {
       }
     });
 
-    // Get all sold vehicles
+    // Get all sold vehicles for the month with their test drives and transactions
     const soldVehicles = await prisma.vehicle.findMany({
       where: {
         status: 'SOLD',
@@ -44,45 +80,55 @@ export async function GET(request) {
         }
       },
       include: {
-        testDrives: true
+        testDrives: {
+          include: {
+            customer: true
+          }
+        },
+        transactions: {
+          include: {
+            customer: true
+          }
+        }
       }
     });
 
-    // Calculate metrics
-    const totalAppointments = appointments.length;
-    const websiteAppointments = appointments.filter(apt => apt.source === 'WEBSITE').length;
-    const otherAppointments = totalAppointments - websiteAppointments;
-    const cancelledAppointments = appointments.filter(apt => apt.status === 'CANCELLED').length;
-    
+    // Calculate total vehicles sold for the month
     const totalVehiclesSold = soldVehicles.length;
-    const websiteDriveSales = soldVehicles.filter(vehicle => 
-      vehicle.testDrives.some(drive => drive.source === 'WEBSITE')
-    ).length;
+    
+    // Calculate website drive sales
+    const websiteDriveSales = soldVehicles.filter(vehicle => {
+      const transaction = vehicle.transactions[0];
+      if (!transaction) return false;
+      
+      const relevantTestDrive = vehicle.testDrives.find(td => td.source === 'WEBSITE');
+      return relevantTestDrive !== undefined;
+    }).length;
+
     const otherSourceSales = totalVehiclesSold - websiteDriveSales;
 
-    // Calculate total revenue from sold vehicles
+    // Calculate financial metrics
     const totalRevenue = soldVehicles.reduce(
-      (sum, vehicle) => sum + (Number(vehicle.soldPrice) || 0), 
+      (sum, vehicle) => sum + (Number(vehicle.soldPrice) || 0),
       0
     );
 
+    const totalVehicleCosts = soldVehicles.reduce(
+      (sum, vehicle) => sum + (Number(vehicle.cost) || 0),
+      0
+    );
+
+    const netProfit = totalRevenue - totalVehicleCosts;
+    const profitMargin = totalRevenue > 0 
+      ? ((netProfit / totalRevenue) * 100)
+      : 0;
+
+    // Get total customers
     const totalCustomers = await prisma.customer.count();
 
     // Save monthly metrics
     await prisma.monthlyMetric.upsert({
-      where: {
-        month: start
-      },
-      update: {
-        totalAppointments,
-        websiteAppointments,
-        otherAppointments,
-        totalVehiclesSold,
-        websiteDriveSales,
-        otherSourceSales,
-        totalRevenue,
-        cancelledAppointments
-      },
+      where: { month: start },
       create: {
         month: start,
         totalAppointments,
@@ -92,11 +138,33 @@ export async function GET(request) {
         websiteDriveSales,
         otherSourceSales,
         totalRevenue,
-        cancelledAppointments
+        totalVehicleCosts,
+        netProfit,
+        profitMargin,
+        cancelledAppointments,
+        activeInventory,
+        totalCustomers,
+        totalVehicles
+      },
+      update: {
+        totalAppointments,
+        websiteAppointments,
+        otherAppointments,
+        totalVehiclesSold,
+        websiteDriveSales,
+        otherSourceSales,
+        totalRevenue,
+        totalVehicleCosts,
+        netProfit,
+        profitMargin,
+        cancelledAppointments,
+        activeInventory,
+        totalCustomers,
+        totalVehicles
       }
     });
 
-    // Return all metrics
+    // Return all metrics including cancellation reasons
     return NextResponse.json({
       totalAppointments,
       websiteAppointments,
@@ -105,20 +173,20 @@ export async function GET(request) {
       websiteDriveSales,
       otherSourceSales,
       totalRevenue,
+      totalVehicleCosts,
+      netProfit,
+      profitMargin,
       cancelledAppointments,
       activeInventory,
       totalCustomers,
       totalVehicles,
-      period: {
-        start: start.toISOString(),
-        end: end.toISOString()
-      }
+      cancellationReasons: formattedReasons
     });
 
   } catch (error) {
     console.error('Error fetching metrics:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch metrics' }, 
+      { error: 'Failed to fetch metrics' },
       { status: 500 }
     );
   }

@@ -4,11 +4,9 @@ import prisma from '@/lib/prisma'
 
 export async function GET(request) {
   try {
-    // Get query parameters if needed
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    // Build where clause
     const whereClause = {};
     if (status) {
       whereClause.status = status;
@@ -18,7 +16,7 @@ export async function GET(request) {
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
-        // Include any relations if needed
+        desiredVehicle: true, // Include desiredVehicle details
       }
     });
     
@@ -31,7 +29,6 @@ export async function GET(request) {
     );
   }
 }
-
 export async function POST(request) {
   try {
     const data = await request.json();
@@ -44,6 +41,14 @@ export async function POST(request) {
       );
     }
 
+    // If intent is 'trade', ensure desiredVehicleId is provided
+    if (data.intent === 'trade' && !data.desiredVehicleId) {
+      return NextResponse.json(
+        { error: 'Desired Vehicle ID is required for trade-in submissions' },
+        { status: 400 }
+      );
+    }
+
     // Create the submission with all possible fields
     const submission = await prisma.vehicleSubmission.create({
       data: {
@@ -52,22 +57,18 @@ export async function POST(request) {
         vehicleDetails: data.vehicleDetails,
         condition: data.condition,
         ownership: data.ownership,
+        desiredVehicleId: data.intent === 'trade' ? data.desiredVehicleId : null, // Include desiredVehicleId for trade
         photoUrls: data.photos?.map(p => p.preview) || [],
         status: 'PENDING_REVIEW',
-        notes: data.notes,
-        customerInfo: data.customerInfo,
+        notes: data.notes, // Now included
+        customerInfo: data.customerInfo, // Now included
         createdAt: new Date(),
         updatedAt: new Date()
       },
       include: {
-        // Include any relations if needed
+        desiredVehicle: true, // Include desiredVehicle in the response
       }
     });
-
-    // Optional: Send notification emails
-    // if (process.env.ENABLE_NOTIFICATIONS === 'true') {
-    //   await sendNotificationEmails({...})
-    // }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 // src/app/sell-trade/components/ReviewSubmit.js
+
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,13 +11,40 @@ export default function ReviewSubmit({ formData, onPrev }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const [desiredVehicle, setDesiredVehicle] = useState(null);
+  const [desiredVehicleLoading, setDesiredVehicleLoading] = useState(false);
+  const [desiredVehicleError, setDesiredVehicleError] = useState('');
+
+  useEffect(() => {
+    if (formData.intent === 'trade' && formData.desiredVehicleId) {
+      fetchDesiredVehicle();
+    }
+  }, [formData.intent, formData.desiredVehicleId]);
+
+  const fetchDesiredVehicle = async () => {
+    setDesiredVehicleLoading(true);
+    setDesiredVehicleError('');
+    try {
+      const res = await fetch(`/api/vehicles/${formData.desiredVehicleId}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch desired vehicle details. Status: ${res.status}`);
+      }
+      const data = await res.json();
+      setDesiredVehicle(data);
+    } catch (error) {
+      console.error('Error fetching desired vehicle:', error);
+      setDesiredVehicleError('Failed to load desired vehicle details.');
+    } finally {
+      setDesiredVehicleLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError('');
 
     try {
-      const response = await fetch('/api/sell-trade/submit', {
+      const response = await fetch('/api/sell-trade', { // Ensure this endpoint handles desiredVehicleId
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,7 +53,8 @@ export default function ReviewSubmit({ formData, onPrev }) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit form');
+        const errorData = await response.json();
+        throw new Error(errorData?.error || 'Failed to submit form');
       }
 
       setSuccess(true);
@@ -36,6 +65,7 @@ export default function ReviewSubmit({ formData, onPrev }) {
       
     } catch (err) {
       setError('There was an error submitting your request. Please try again.');
+      console.error('Submission Error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -146,6 +176,40 @@ export default function ReviewSubmit({ formData, onPrev }) {
           </div>
         )}
       </div>
+
+      {/* Desired Vehicle for Trade-In */}
+      {formData.intent === 'trade' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Desired Vehicle for Trade-In</h3>
+          {desiredVehicleLoading ? (
+            <p>Loading desired vehicle details...</p>
+          ) : desiredVehicleError ? (
+            <p className="text-red-600">{desiredVehicleError}</p>
+          ) : desiredVehicle ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-sm text-gray-500">Year</dt>
+                <dd className="font-medium">{desiredVehicle.year}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Make</dt>
+                <dd className="font-medium">{desiredVehicle.make}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Model</dt>
+                <dd className="font-medium">{desiredVehicle.model}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Stock Number</dt>
+                <dd className="font-medium">{desiredVehicle.stockNumber}</dd>
+              </div>
+              {/* Add more details as needed */}
+            </div>
+          ) : (
+            <p>No desired vehicle selected.</p>
+          )}
+        </div>
+      )}
 
       {/* Photos Preview */}
       <div className="bg-white rounded-lg shadow p-6">

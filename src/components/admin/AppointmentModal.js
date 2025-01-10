@@ -1,8 +1,6 @@
-// src/components/admin/AppointmentModal.js
 'use client'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-// Add these imports to handle date comparisons:
 import { parseISO, isSameDay } from 'date-fns'
 
 export default function AppointmentModal({ 
@@ -13,8 +11,7 @@ export default function AppointmentModal({
   onSave 
 }) {
   const [vehicles, setVehicles] = useState([])
-  
-  const [error, setError] = useState("");
+  const [error, setError] = useState("")
   const [blockedTimes, setBlockedTimes] = useState([])
 
   const [formData, setFormData] = useState({
@@ -29,9 +26,9 @@ export default function AppointmentModal({
     status: appointment?.status || 'PENDING',
     notes: appointment?.notes || '',
     source: appointment?.source || '',
-    cancellationReason: appointment?.cancellationReason || '' // Add this line
-
+    cancellationReason: appointment?.cancellationReason || ''
   })
+  
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -49,7 +46,6 @@ export default function AppointmentModal({
     }
   }
 
-  // 2) Fetch blocked times whenever formData.date changes
   useEffect(() => {
     if (!formData.date) return;
     
@@ -123,11 +119,12 @@ export default function AppointmentModal({
       onClose()
     } catch (error) {
       console.error('Error saving appointment:', error)
-      setError(error.message) // Add error state to display the message
+      setError(error.message)
     } finally {
       setLoading(false)
     }
-}
+  }
+
   const handleDelete = async () => {
     if (!appointment || !window.confirm('Are you sure you want to delete this appointment?')) {
       return;
@@ -141,7 +138,7 @@ export default function AppointmentModal({
   
       if (!res.ok) throw new Error('Failed to delete appointment');
   
-      onSave(); // This will refresh the calendar
+      onSave();
       onClose();
     } catch (error) {
       console.error('Error deleting appointment:', error);
@@ -150,11 +147,12 @@ export default function AppointmentModal({
     }
   };
 
-  // Available time slots (9 AM to 7 PM)
   const timeSlots = Array.from({ length: 11 }, (_, i) => {
     const hour = i + 9;
     return `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
   });
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -167,6 +165,7 @@ export default function AppointmentModal({
             <X className="w-6 h-6" />
           </button>
         </div>
+
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
             {error}
@@ -248,26 +247,28 @@ export default function AppointmentModal({
                 <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
+
             {formData.status === 'CANCELLED' && (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      Cancellation Reason
-    </label>
-    <select
-      required
-      className="w-full border rounded-md px-3 py-2"
-      value={formData.cancellationReason || ''}
-      onChange={(e) => setFormData(prev => ({ ...prev, cancellationReason: e.target.value }))}
-    >
-      <option value="">Select reason</option>
-      <option value="CUSTOMER_REQUEST">Customer Request</option>
-      <option value="VEHICLE_SOLD">Vehicle Sold</option>
-      <option value="NO_SHOW">No Show</option>
-      <option value="RESCHEDULED">Rescheduled</option>
-      <option value="OTHER">Other</option>
-    </select>
-  </div>
-)}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cancellation Reason
+                </label>
+                <select
+                  required
+                  className="w-full border rounded-md px-3 py-2"
+                  value={formData.cancellationReason || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cancellationReason: e.target.value }))}
+                >
+                  <option value="">Select reason</option>
+                  <option value="CUSTOMER_REQUEST">Customer Request</option>
+                  <option value="VEHICLE_SOLD">Vehicle Sold</option>
+                  <option value="NO_SHOW">No Show</option>
+                  <option value="RESCHEDULED">Rescheduled</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date
@@ -281,7 +282,6 @@ export default function AppointmentModal({
               />
             </div>
 
-            {/* 3) Updated Time select with blocked-time logic */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time
@@ -293,7 +293,6 @@ export default function AppointmentModal({
                 onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
               >
                 {timeSlots.map((time) => {
-                  // Check if this time is in a blocked range
                   const isBlocked = blockedTimes.some(block =>
                     isSameDay(parseISO(block.date), new Date(formData.date)) &&
                     time >= block.startTime &&
@@ -309,32 +308,32 @@ export default function AppointmentModal({
               </select>
             </div>
           </div>
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Lead Source
-  </label>
-  {formData.source === 'WEBSITE' ? (
-    // Locked display for website appointments
-    <div className="w-full px-3 py-2 bg-gray-100 border rounded-md text-gray-600">
-      Website
-    </div>
-  ) : (
-    // Regular select for admin-created appointments
-    <select
-      required
-      className="w-full border rounded-md px-3 py-2"
-      value={formData.source}
-      onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
-    >
-      <option value="">Select source</option>
-      <option value="OFFERUP">OfferUp</option>
-      <option value="FACEBOOK">Facebook Marketplace</option>
-      <option value="FRIEND">Friend Referral</option>
-      <option value="AD">Advertisement</option>
-      <option value="OTHER">Other</option>
-    </select>
-  )}
-</div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Lead Source
+            </label>
+            {formData.source === 'WEBSITE' ? (
+              <div className="w-full px-3 py-2 bg-gray-100 border rounded-md text-gray-600">
+                Website
+              </div>
+            ) : (
+              <select
+                required
+                className="w-full border rounded-md px-3 py-2"
+                value={formData.source}
+                onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
+              >
+                <option value="">Select source</option>
+                <option value="OFFERUP">OfferUp</option>
+                <option value="FACEBOOK">Facebook Marketplace</option>
+                <option value="FRIEND">Friend Referral</option>
+                <option value="AD">Advertisement</option>
+                <option value="OTHER">Other</option>
+              </select>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Notes
@@ -348,7 +347,7 @@ export default function AppointmentModal({
           </div>
 
           <div className="flex justify-end gap-4 mt-6">
-            {appointment && ( // Only show delete button when editing an existing appointment
+            {appointment && (
               <button
                 type="button"
                 onClick={handleDelete}
@@ -377,5 +376,5 @@ export default function AppointmentModal({
         </form>
       </div>
     </div>
-  )
+  );
 }

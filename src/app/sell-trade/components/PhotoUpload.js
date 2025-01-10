@@ -10,7 +10,8 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const MAX_PHOTOS = 25;
+  const MIN_PHOTOS = 8;
+  const MAX_PHOTOS = 10;
   const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
   const photoRequirements = [
@@ -31,7 +32,7 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
 
     // Validate number of files
     if (uploadedPhotos.length + files.length > MAX_PHOTOS) {
-      setError(`Maximum ${MAX_PHOTOS} photos allowed`);
+      setError(`You can upload a maximum of ${MAX_PHOTOS} photos.`);
       return;
     }
 
@@ -39,13 +40,13 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
     const validFiles = files.filter(file => {
       // Check file size
       if (file.size > MAX_SIZE) {
-        setError('Some files were too large (max 5MB)');
+        setError('Some files were too large (max 5MB each).');
         return false;
       }
 
       // Check file type
       if (!file.type.startsWith('image/')) {
-        setError('Only image files are allowed');
+        setError('Only image files are allowed.');
         return false;
       }
 
@@ -72,8 +73,8 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
   };
 
   const handleSubmit = async () => {
-    if (uploadedPhotos.length < photoRequirements.length) {
-      setError(`Please upload at least ${photoRequirements.length} required photos`);
+    if (uploadedPhotos.length < MIN_PHOTOS) {
+      setError(`Please upload at least ${MIN_PHOTOS} photos.`);
       return;
     }
 
@@ -99,7 +100,7 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
           Upload Vehicle Photos
         </h2>
         <p className="text-gray-600">
-          Please provide clear photos of your vehicle. Up to {MAX_PHOTOS} photos allowed.
+          Please provide clear photos of your vehicle. Upload between {MIN_PHOTOS} and {MAX_PHOTOS} photos.
         </p>
       </div>
 
@@ -144,7 +145,7 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
           Click or drag photos here to upload
         </p>
         <p className="text-sm text-gray-500 mt-2">
-          Maximum {MAX_PHOTOS} photos, 5MB each
+          Upload between {MIN_PHOTOS} and {MAX_PHOTOS} photos, 5MB each
         </p>
       </div>
 
@@ -186,8 +187,12 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={isUploading || uploadedPhotos.length < photoRequirements.length}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+          disabled={isUploading || uploadedPhotos.length < MIN_PHOTOS}
+          className={`px-6 py-2 rounded-md flex items-center ${
+            isUploading || uploadedPhotos.length < MIN_PHOTOS
+              ? 'bg-blue-300 text-white cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
         >
           {isUploading ? 'Processing...' : 'Continue to Review'}
         </button>
