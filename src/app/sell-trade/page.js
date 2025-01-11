@@ -1,5 +1,3 @@
-// src/app/sell-trade/page.js
-
 'use client';
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
@@ -15,7 +13,7 @@ export default function SellTradePage() {
     intent: '',
     vin: '',
     vehicleDetails: null,
-    desiredVehicleId: '', // New field added here
+    desiredVehicleId: '',
     ownership: '',
     condition: {
       color: '',
@@ -27,7 +25,12 @@ export default function SellTradePage() {
       generalCondition: ''
     },
     photos: [],
-    score: null
+    score: null,
+    customerInfo: {  // Add customer info to formData
+      name: '',
+      email: '',
+      phone: ''
+    }
   });
 
   const totalSteps = 5;
@@ -44,6 +47,24 @@ export default function SellTradePage() {
     }
   };
 
+  // Helper function to get step title
+  const getStepTitle = (step) => {
+    switch (step) {
+      case 1:
+        return "Select Intent";
+      case 2:
+        return "Vehicle Information";
+      case 3:
+        return "Vehicle Condition";
+      case 4:
+        return "Upload Photos";
+      case 5:
+        return "Review & Submit";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-8">
       {/* Progress Bar */}
@@ -53,11 +74,7 @@ export default function SellTradePage() {
             Step {currentStep} of {totalSteps}
           </span>
           <span className="text-sm font-medium">
-            {currentStep === 1 && "Select Intent"}
-            {currentStep === 2 && "Vehicle Information"}
-            {currentStep === 3 && "Vehicle Condition"}
-            {currentStep === 4 && "Upload Photos"}
-            {currentStep === 5 && "Review & Submit"}
+            {getStepTitle(currentStep)}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">

@@ -1,6 +1,6 @@
-// src/app/api/sell-trade/route.js
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { sendSellTradeEmails } from '@/lib/email';
 
 export async function GET(request) {
   try {
@@ -29,6 +29,7 @@ export async function GET(request) {
     );
   }
 }
+
 export async function POST(request) {
   try {
     const data = await request.json();
@@ -57,18 +58,32 @@ export async function POST(request) {
         vehicleDetails: data.vehicleDetails,
         condition: data.condition,
         ownership: data.ownership,
-        desiredVehicleId: data.intent === 'trade' ? data.desiredVehicleId : null, // Include desiredVehicleId for trade
+        desiredVehicleId: data.intent === 'trade' ? data.desiredVehicleId : null,
         photoUrls: data.photos?.map(p => p.preview) || [],
         status: 'PENDING_REVIEW',
-        notes: data.notes, // Now included
-        customerInfo: data.customerInfo, // Now included
+        notes: data.notes,
+        customerInfo: data.customerInfo,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       include: {
-        desiredVehicle: true, // Include desiredVehicle in the response
+        desiredVehicle: true,
       }
     });
+
+    // After successful submission, send emails using the existing email utility
+    try {
+      await sendSellTradeEmails({
+        customerName: data.customerInfo.name,
+        email: data.customerInfo.email,
+        type: data.intent,
+        vehicleDetails: data.vehicleDetails,
+        desiredVehicle: submission.desiredVehicle
+      });
+    } catch (emailError) {
+      console.error('Warning: Failed to send email notifications:', emailError);
+      // Continue with success response even if emails fail
+    }
 
     return NextResponse.json({
       success: true,

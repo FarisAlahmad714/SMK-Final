@@ -5,13 +5,27 @@ import prisma from '@/lib/prisma'
 export async function POST(request) {
   try {
     const data = await request.json()
-    console.log('Transaction data received:', data) // Debug log
+    console.log('Transaction data received:', data)
 
     // Validate required fields
     if (!data.vehicleId || !data.customerId || !data.salePrice) {
-      console.log('Missing required fields:', { data }) // Debug log
+      console.log('Missing required fields:', { data })
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Check if a transaction already exists for this vehicle
+    const existingTransaction = await prisma.transaction.findFirst({
+      where: {
+        vehicleId: data.vehicleId
+      }
+    })
+
+    if (existingTransaction) {
+      return NextResponse.json(
+        { error: 'Transaction already exists for this vehicle' },
         { status: 400 }
       )
     }
@@ -40,7 +54,7 @@ export async function POST(request) {
 
     return NextResponse.json(transaction, { status: 201 })
   } catch (error) {
-    console.error('Detailed error:', error) // Debug log
+    console.error('Detailed error:', error)
     return NextResponse.json(
       { error: 'Error creating transaction: ' + error.message },
       { status: 500 }
@@ -57,7 +71,8 @@ export async function GET(request) {
       },
       orderBy: {
         date: 'desc'
-      }
+      },
+      distinct: ['vehicleId'] // Add this line to ensure uniqueness
     })
 
     return NextResponse.json(transactions)

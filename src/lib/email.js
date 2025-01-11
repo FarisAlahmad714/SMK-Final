@@ -224,3 +224,85 @@ export async function sendContactFormEmails({ name, email, phone, message }) {
     `
   });
 }
+
+export async function sendSellTradeEmails({ customerName, email, type, vehicleDetails, desiredVehicle = null }) {
+  const logoUrl = `${process.env.NEXT_PUBLIC_WEBSITE_URL}/images/hero1.webp`;
+
+  // Email to customer
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Your ${type.toUpperCase()} Request with SMK Auto`,
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
+          </div>
+          <div style="padding: 40px;">
+            <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">Request Received!</h1>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">Dear ${customerName},</p>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">Thank you for submitting your ${type} request with SMK Auto. We have received your information and will review it promptly.</p>
+            <div style="background-color: #f7fafc; padding: 30px; border-radius: 5px; margin-bottom: 40px; border: 1px solid #e2e8f0;">
+              <p style="font-size: 20px; line-height: 1.6; color: #4a5568;">
+                <strong style="color: #1a202c;">Your Vehicle:</strong><br>
+                ${vehicleDetails.year} ${vehicleDetails.make} ${vehicleDetails.model}<br>
+                ${vehicleDetails.mileage ? `Mileage: ${vehicleDetails.mileage} miles` : ''}
+              </p>
+              ${desiredVehicle ? `
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                  <strong style="color: #1a202c;">Desired Vehicle:</strong><br>
+                  ${desiredVehicle.year} ${desiredVehicle.make} ${desiredVehicle.model}<br>
+                  Stock #: ${desiredVehicle.stockNumber}
+                </div>
+              ` : ''}
+            </div>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">Our team will evaluate your submission and contact you shortly to discuss next steps.</p>
+            <p style="font-size: 20px; line-height: 1.6; color: #4a5568; text-align: center;">We appreciate your interest in working with SMK Auto!</p>
+          </div>
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+            <p style="font-size: 18px; line-height: 1.6; color: #ffffff; margin-bottom: 0;">Best regards,<br>The SMK Auto Team</p>
+          </div>
+        </div>
+      </div>
+    `
+  });
+
+  // Email to admin
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: process.env.ADMIN_EMAIL,
+    subject: `New ${type.toUpperCase()} Request Received`,
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+            <img src="${logoUrl}" alt="SMK Auto Logo" style="max-width: 200px;">
+          </div>
+          <div style="padding: 40px;">
+            <h1 style="color: #1a202c; font-size: 32px; margin-bottom: 30px; text-align: center;">New ${type.toUpperCase()} Request</h1>
+            <div style="background-color: #f7fafc; padding: 30px; border-radius: 5px; border: 1px solid #e2e8f0;">
+              <p style="font-size: 20px; line-height: 1.6; color: #4a5568;">
+                <strong style="color: #1a202c;">Customer:</strong> ${customerName}<br>
+                <strong style="color: #1a202c;">Email:</strong> ${email}<br>
+                <strong style="color: #1a202c;">Vehicle Details:</strong><br>
+                ${vehicleDetails.year} ${vehicleDetails.make} ${vehicleDetails.model}<br>
+                ${vehicleDetails.mileage ? `Mileage: ${vehicleDetails.mileage} miles` : ''}
+              </p>
+              ${desiredVehicle ? `
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                  <strong style="color: #1a202c;">Desired Vehicle:</strong><br>
+                  ${desiredVehicle.year} ${desiredVehicle.make} ${desiredVehicle.model}<br>
+                  Stock #: ${desiredVehicle.stockNumber}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          <div style="background-color: #1a202c; padding: 30px; text-align: center; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+            <p style="font-size: 18px; line-height: 1.6; color: #ffffff; margin-bottom: 0;">Please review this request in the admin dashboard.</p>
+          </div>
+        </div>
+      </div>
+    `
+  });
+}

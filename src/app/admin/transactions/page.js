@@ -1,7 +1,6 @@
 'use client'
-
 import React, { useState, useEffect } from 'react'
-import { DollarSign, Calendar, Users, Car, Eye, X, Trash2 } from 'lucide-react'
+import { DollarSign, Calendar, Users, Car, Eye, X, Trash2, Download } from 'lucide-react'
 import FinalPriceModal from '../../../components/admin/FinalPriceModal'
 
 export default function Transactions() {
@@ -38,12 +37,60 @@ export default function Transactions() {
     setIsModalOpen(false)
   }
 
+  const downloadCSV = () => {
+    // Format transactions for CSV
+    const csvData = transactions.map(tx => ({
+      'Date': new Date(tx.date).toLocaleDateString(),
+      'Vehicle': `${tx.vehicle.year} ${tx.vehicle.make} ${tx.vehicle.model}`,
+      'Stock Number': tx.vehicle.stockNumber,
+      'Customer': tx.customer.name,
+      'Customer Email': tx.customer.email,
+      'Customer Phone': tx.customer.phone,
+      'Sale Price': tx.salePrice.toFixed(2),
+      'Vehicle Cost': tx.vehicle.cost.toFixed(2),
+      'Profit': tx.profit.toFixed(2),
+      'Profit Margin': `${tx.profitMargin.toFixed(2)}%`
+    }));
+
+    // Convert to CSV string
+    const headers = Object.keys(csvData[0]);
+    const csvString = [
+      headers.join(','), // Header row
+      ...csvData.map(row => 
+        headers.map(header => 
+          // Handle commas in data by wrapping in quotes
+          `"${String(row[header]).replace(/"/g, '""')}"` // Escape existing quotes
+        ).join(',')
+      )
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `SMK_Auto_Transactions_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) return <div className="p-6">Loading transactions...</div>
   if (error) return <div className="p-6 text-red-500">Error: {error}</div>
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Transactions</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Transactions</h1>
+        <button
+          onClick={downloadCSV}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          <Download className="w-5 h-5" />
+          Export CSV
+        </button>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow rounded">

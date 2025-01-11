@@ -1,13 +1,60 @@
-// src/components/admin/SellTradeModal.js
 'use client'
-import { X } from 'lucide-react'
+import { useState } from 'react';
+import { X } from 'lucide-react';
 
 export default function SellTradeModal({ submission, onClose, onStatusUpdate }) {
+  const [statusMessage, setStatusMessage] = useState('');
+  const [updating, setUpdating] = useState(false);
+
   // Add null checks for all potentially undefined properties
   const photos = submission?.photoUrls || [];
   const packages = submission?.condition?.packages || [];
   const aftermarket = submission?.condition?.aftermarket || [];
-  const desiredVehicle = submission?.desiredVehicle || null; // Desired Vehicle Details
+  const desiredVehicle = submission?.desiredVehicle || null;
+  const customerInfo = submission?.customerInfo || {};
+
+  const handleStatusUpdate = async (status) => {
+    setUpdating(true);
+    setStatusMessage('');
+    
+    try {
+      // First update the submission status
+      await onStatusUpdate(submission?.id, status);
+
+      if (status === 'APPROVED' && customerInfo) {
+        // Create or update customer
+        const response = await fetch('/api/customers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+            source: 'WEBSITE',
+            sellTradeRequest: true,
+            notes: `Added from ${submission.type.toUpperCase()} request - ${new Date().toLocaleDateString()}`
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update customer database');
+        }
+      }
+
+      setStatusMessage(`Request ${status.toLowerCase()} successfully`);
+      // Close modal after short delay
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setStatusMessage('Error updating status. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -18,17 +65,25 @@ export default function SellTradeModal({ submission, onClose, onStatusUpdate }) 
             <h2 className="text-xl font-bold">
               {submission?.type === 'sell' ? 'Sell' : 'Trade'} Request Details
             </h2>
-            <button onClick={onClose}>
+            <button onClick={onClose} disabled={updating}>
               <X className="w-6 h-6" />
             </button>
           </div>
 
+          {/* Status Message */}
+          {statusMessage && (
+            <div className={`mb-4 p-3 rounded-md text-sm ${
+              statusMessage.includes('Error') 
+                ? 'bg-red-100 text-red-700' 
+                : 'bg-green-100 text-green-700'
+            }`}>
+              {statusMessage}
+            </div>
+          )}
+
           {/* Content */}
           <div className="space-y-6">
-            {/* 
-            Status Section 
-            */}
-            {/*
+            {/* Status Section */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex justify-between items-center">
                 <div>
@@ -44,24 +99,50 @@ export default function SellTradeModal({ submission, onClose, onStatusUpdate }) 
                 <div className="flex gap-2">
                   {submission?.status !== 'APPROVED' && (
                     <button
-                      onClick={() => onStatusUpdate(submission?.id, 'APPROVED')}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      onClick={() => handleStatusUpdate('APPROVED')}
+                      disabled={updating}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-400"
                     >
-                      Approve
+                      {updating ? 'Processing...' : 'Approve'}
                     </button>
                   )}
                   {submission?.status !== 'REJECTED' && (
                     <button
-                      onClick={() => onStatusUpdate(submission?.id, 'REJECTED')}
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                      onClick={() => handleStatusUpdate('REJECTED')}
+                      disabled={updating}
+                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-400"
                     >
-                      Reject
+                      {updating ? 'Processing...' : 'Reject'}
                     </button>
                   )}
                 </div>
               </div>
             </div>
-            */}
+
+            {/* Customer Information */}
+            <div>
+              <h3 className="font-semibold mb-3">Customer Information</h3>
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-500">Name</p>
+                  <p className="font-medium">{customerInfo.name || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium">{customerInfo.email || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Phone</p>
+                  <p className="font-medium">{customerInfo.phone || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Submission Date</p>
+                  <p className="font-medium">
+                    {new Date(submission?.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Vehicle Details */}
             <div>
@@ -123,22 +204,15 @@ export default function SellTradeModal({ submission, onClose, onStatusUpdate }) 
                 <h3 className="font-semibold mb-3">Desired Vehicle for Trade-In</h3>
                 <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Year</p>
-                    <p className="font-medium">{desiredVehicle.year}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Make</p>
-                    <p className="font-medium">{desiredVehicle.make}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Model</p>
-                    <p className="font-medium">{desiredVehicle.model}</p>
+                    <p className="text-sm text-gray-500">Vehicle</p>
+                    <p className="font-medium">
+                      {desiredVehicle.year} {desiredVehicle.make} {desiredVehicle.model}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Stock Number</p>
                     <p className="font-medium">{desiredVehicle.stockNumber}</p>
                   </div>
-                  {/* Add more desired vehicle details as needed */}
                   {desiredVehicle.trim && (
                     <div>
                       <p className="text-sm text-gray-500">Trim</p>
@@ -191,5 +265,5 @@ export default function SellTradeModal({ submission, onClose, onStatusUpdate }) 
         </div>
       </div>
     </div>
-  )
+  );
 }

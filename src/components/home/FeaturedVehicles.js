@@ -23,6 +23,7 @@ export default function FeaturedVehicles() {
 
     fetchVehicles()
   }, [])
+  
 
   if (loading) {
     return (

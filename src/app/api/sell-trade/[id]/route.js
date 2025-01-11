@@ -1,11 +1,11 @@
-// src/app/api/sell-trade/[id]/route.js
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params
-    const data = await request.json()
+    // Fix the params error by awaiting params.id
+    const id = await params.id;
+    const data = await request.json();
 
     const submission = await prisma.vehicleSubmission.update({
       where: { id },
@@ -13,14 +13,14 @@ export async function PATCH(request, { params }) {
         status: data.status,
         updatedAt: new Date()
       }
-    })
+    });
 
-    return NextResponse.json(submission)
+    return NextResponse.json(submission);
   } catch (error) {
-    console.error('Error updating submission:', error)
+    console.error('Error updating submission:', error);
     return NextResponse.json(
       { error: 'Failed to update submission' },
       { status: 500 }
-    )
+    );
   }
 }

@@ -1,4 +1,3 @@
-// src/components/admin/SellTradeTable.js
 'use client'
 import { useState, useEffect } from 'react'
 import { Eye } from 'lucide-react'
@@ -20,7 +19,7 @@ export default function SellTradeTable() {
       const res = await fetch('/api/sell-trade')
       if (!res.ok) throw new Error('Failed to fetch submissions')
       const data = await res.json()
-      console.log('Fetched Submissions:', data) // Debugging
+      console.log('Fetched Submissions:', data)
       setSubmissions(data)
     } catch (err) {
       setError('Failed to load submissions')
@@ -61,13 +60,11 @@ export default function SellTradeTable() {
                 Type
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Customer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Vehicle
               </th>
-              {/* 
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th> 
-              */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -89,19 +86,18 @@ export default function SellTradeTable() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {submission.vehicleDetails.year} {submission.vehicleDetails.make} {submission.vehicleDetails.model}
+                  {submission.customerInfo?.name || 'N/A'}
                 </td>
-                {/* 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded text-sm ${
-                    submission.status === 'PENDING_REVIEW' ? 'bg-yellow-100 text-yellow-800' :
-                    submission.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {submission.status}
-                  </span>
-                </td> 
-                */}
+                  <div>
+                    {submission.vehicleDetails.year} {submission.vehicleDetails.make} {submission.vehicleDetails.model}
+                    {submission.type === 'trade' && submission.desiredVehicle && (
+                      <div className="text-sm text-gray-500">
+                        Interested in: #{submission.desiredVehicle.stockNumber}
+                      </div>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => {

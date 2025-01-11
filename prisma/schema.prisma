@@ -71,6 +71,7 @@ model Customer {
   phone       String
   source      String?     // Add this field - can be 'WEBSITE', 'WALK_IN', etc.
   notes       String?
+  sellTradeRequest Boolean    @default(false)  
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   testDrives  TestDrive[]
