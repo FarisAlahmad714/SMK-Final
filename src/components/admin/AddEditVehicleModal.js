@@ -10,6 +10,7 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
     make: vehicle?.make || '',
     model: vehicle?.model || '',
     year: vehicle?.year || new Date().getFullYear(),
+    vin: vehicle?.vin || '',
     price: vehicle?.price || '',
     cost: vehicle?.cost || '',
     mileage: vehicle?.mileage || '',
@@ -69,6 +70,7 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
 
     const dataToSend = {
       ...formData,
+      vin: formData.vin, 
       soldPrice: finalPrice,
       soldDate: finalPrice ? new Date().toISOString() : null
     }
@@ -165,6 +167,20 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
                     className="w-full border rounded-md px-3 py-2 bg-gray-50"
                   />
                 </div>
+                <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    VIN Number
+  </label>
+  <input
+    type="text"
+    name="vin"
+    required
+    className="w-full border rounded-md px-3 py-2"
+    value={formData.vin}
+    onChange={handleChange}
+    placeholder="Enter VIN Number"
+  />
+</div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

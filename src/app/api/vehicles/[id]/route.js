@@ -60,6 +60,7 @@ export async function PUT(request, context) {
         data: {
           ...data,
           stockNumber: data.stockNumber,
+          vin:data.vin,
           make: data.make,
           model: data.model,
           year: parseInt(data.year),

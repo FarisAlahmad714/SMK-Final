@@ -12,7 +12,6 @@ export default function ReviewSubmit({ formData, onPrev }) {
   const [desiredVehicle, setDesiredVehicle] = useState(null);
   const [desiredVehicleLoading, setDesiredVehicleLoading] = useState(false);
   const [desiredVehicleError, setDesiredVehicleError] = useState('');
-  // Add customer info state
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     email: '',
@@ -55,9 +54,6 @@ export default function ReviewSubmit({ formData, onPrev }) {
     }
 
     try {
-      setIsSubmitting(true);
-      
-      // First submit the form data
       const response = await fetch('/api/sell-trade', {
         method: 'POST',
         headers: {
@@ -68,52 +64,24 @@ export default function ReviewSubmit({ formData, onPrev }) {
           customerInfo
         })
       });
-    
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData?.error || 'Failed to submit form');
       }
-    
-      // After successful submission, send emails
-      try {
-        const emailResponse = await fetch('/api/send-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'sell-trade',
-            data: {
-              customerName: customerInfo.name,
-              email: customerInfo.email,
-              type: formData.intent,
-              vehicleDetails: formData.vehicleDetails,
-              desiredVehicle: formData.intent === 'trade' ? formData.desiredVehicle : null
-            }
-          })
-        });
-    
-        if (!emailResponse.ok) {
-          console.error('Warning: Email notification failed to send');
-          // We don't throw here because we still want to show success even if email fails
-        }
-      } catch (emailError) {
-        console.error('Email error:', emailError);
-        // Don't throw - continue with success flow even if email fails
-      }
-    
+
       setSuccess(true);
-      // Redirect to home after 3 seconds
       setTimeout(() => {
         router.push('/');
       }, 3000);
-          
+      
     } catch (err) {
       setError('There was an error submitting your request. Please try again.');
       console.error('Submission Error:', err);
     } finally {
       setIsSubmitting(false);
     }
+  };
 
   if (success) {
     return (
@@ -143,45 +111,6 @@ export default function ReviewSubmit({ formData, onPrev }) {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Review Your Information</h2>
 
-      {/* Customer Information - New Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Your Contact Information</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm text-gray-500 mb-1">Full Name</label>
-            <input
-              type="text"
-              required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={customerInfo.name}
-              onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Enter your full name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-500 mb-1">Email Address</label>
-            <input
-              type="email"
-              required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={customerInfo.email}
-              onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="Enter your email"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-500 mb-1">Phone Number</label>
-            <input
-              type="tel"
-              required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={customerInfo.phone}
-              onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="Enter your phone number"
-            />
-          </div>
-        </div>
-      </div>
 
       {/* Intent Type */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -189,7 +118,6 @@ export default function ReviewSubmit({ formData, onPrev }) {
         <p className="font-medium capitalize">{formData.intent} Vehicle</p>
       </div>
 
-      {/* Rest of your existing sections remain the same */}
       {/* Vehicle Information */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Vehicle Details</h3>
@@ -320,6 +248,46 @@ export default function ReviewSubmit({ formData, onPrev }) {
         </div>
       )}
 
+
+ {/* Customer Information Section */}
+ <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Your Contact Information</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={customerInfo.name}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter your full name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Email Address</label>
+            <input
+              type="email"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={customerInfo.email}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="Enter your email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={customerInfo.phone}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="Enter your phone number"
+            />
+          </div>
+        </div>
+      </div>
       {/* Action Buttons */}
       <div className="flex justify-between mt-8">
         <button
@@ -346,5 +314,4 @@ export default function ReviewSubmit({ formData, onPrev }) {
       </div>
     </div>
   );
-}
 }

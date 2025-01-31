@@ -76,7 +76,7 @@ export async function POST(request) {
     if (blockedTime) {
       return NextResponse.json(
         { error: 'This time slot is blocked' },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -94,15 +94,18 @@ export async function POST(request) {
     if (existingAppointment) {
       return NextResponse.json(
         { error: 'This time slot is already booked' },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Find or create customer
     let customer = await prisma.customer.findFirst({
       where: {
-        email: data.email
-      }
+        email: {
+          equals: data.email,
+          mode: 'insensitive',
+        },
+      },
     });
 
     if (!customer) {
@@ -111,11 +114,23 @@ export async function POST(request) {
           name: data.customerName,
           email: data.email,
           phone: data.phone,
-          notes: data.notes || ''
-        }
+          source: data.source || 'UNKNOWN', // ✅ Use the provided source or default to 'UNKNOWN'
+          notes:
+            data.notes ||
+            `Created from test drive request - ${new Date().toLocaleDateString()}`,
+        },
       });
+    } else {
+      // ✅ Ensure existing customer gets the correct source
+      if (!customer.source) {
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: { source: data.source || 'UNKNOWN' },
+        });
+      }
     }
 
+    // ✅ Store the correct source in the test drive appointment
     const appointment = await prisma.testDrive.create({
       data: {
         vehicleId: data.vehicleId,
@@ -127,11 +142,11 @@ export async function POST(request) {
         time: data.time,
         status: 'PENDING',
         notes: data.notes,
-        source: data.source
+        source: data.source || 'UNKNOWN', // ✅ Use the correct source
       },
       include: {
         vehicle: true,
-        customer: true
+        customer: true,
       },
     });
 
@@ -142,19 +157,23 @@ export async function POST(request) {
         date: format(new Date(appointment.date), 'MMMM d, yyyy'),
         time: data.time,
         vehicle: appointment.vehicle,
-        notes: data.notes  // Add this line
+        notes: data.notes,
       });
     } catch (emailError) {
       console.error('Error sending emails:', emailError);
       // Optionally, handle email sending failures without failing the entire request
     }
-    
+
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+    console.error('Error creating appointment:', error);
+    return NextResponse.json(
+      { error: 'Failed to create appointment' },
+      { status: 500 }
+    );
   }
 }
+
 
 export async function PUT(request) {
   try {

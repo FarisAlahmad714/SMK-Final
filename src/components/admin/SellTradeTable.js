@@ -37,10 +37,16 @@ export default function SellTradeTable() {
         body: JSON.stringify({ status })
       })
 
-      if (!res.ok) throw new Error('Failed to update status')
-      fetchSubmissions()
+      if (!res.ok) {
+        throw new Error('Failed to update status')
+      }
+
+      // Only refetch submissions after successful status update
+      await fetchSubmissions()
+      return true
     } catch (err) {
       console.error('Error updating status:', err)
+      throw err
     }
   }
 

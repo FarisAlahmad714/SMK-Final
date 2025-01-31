@@ -140,6 +140,8 @@ export default function VehicleManagement() {
                       </h3>
                       <div className="mt-1 text-sm text-gray-500 space-x-4">
                         <span>Stock #{vehicle.stockNumber}</span>
+                        <span>VIN: {vehicle.vin}</span>
+
                         <span>Listing Price:{vehicle.price.toLocaleString()}$</span>
                         <span>Cost:{vehicle.cost.toLocaleString()}$</span>
                             {vehicle.status === 'SOLD' && vehicle.soldPrice && (

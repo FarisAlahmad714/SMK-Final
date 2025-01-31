@@ -36,6 +36,17 @@ export default function CustomersPage() {
     customer.phone?.includes(searchTerm)
   );
 
+  // Sort customers by last activity date (latest on top)
+  const sortedCustomers = filteredCustomers.sort((a, b) => {
+    const dateA = a.testDrives?.length > 0 ? new Date(a.testDrives[0].date) : new Date(0); // Fallback to epoch if no test drives
+    const dateB = b.testDrives?.length > 0 ? new Date(b.testDrives[0].date) : new Date(0); // Fallback to epoch if no test drives
+    return dateB - dateA; // Sort in descending order (latest first)
+  });
+
+  // Count total customers and sell-trade requests
+  const totalCustomers = customers.length;
+  const totalSellTradeRequests = customers.filter(customer => customer.sellTradeRequest).length;
+
   return (
     <div className="p-8">
       {/* Header and Search */}
@@ -50,6 +61,18 @@ export default function CustomersPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+      </div>
+
+      {/* Summary Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-lg font-semibold">Total Customers</h2>
+          <p className="text-2xl font-bold">{totalCustomers}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-lg font-semibold">Sell-Trade Requests</h2>
+          <p className="text-2xl font-bold">{totalSellTradeRequests}</p>
         </div>
       </div>
 
@@ -78,7 +101,7 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCustomers.map((customer) => (
+                {sortedCustomers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">

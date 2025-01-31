@@ -21,6 +21,7 @@ model Admin {
 model Vehicle {
   id             String              @id @default(cuid())
   stockNumber    String              @unique
+  vin            String?             @unique
   make           String
   model          String
   year           Int

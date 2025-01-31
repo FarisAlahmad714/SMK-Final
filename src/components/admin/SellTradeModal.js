@@ -20,37 +20,44 @@ export default function SellTradeModal({ submission, onClose, onStatusUpdate }) 
     try {
       // First update the submission status
       await onStatusUpdate(submission?.id, status);
-
-      if (status === 'APPROVED' && customerInfo) {
-        // Create or update customer
+  
+      // Only create customer if status is APPROVED
+      if (status === 'APPROVED' && submission?.customerInfo) {
+        const customerData = {
+          name: submission.customerInfo.name,
+          email: submission.customerInfo.email,
+          phone: submission.customerInfo.phone,
+          source: 'WEBSITE',
+          sellTradeRequest: true,
+          notes: `Added from ${submission.type.toUpperCase()} request - ${new Date().toLocaleDateString()}`
+        };
+  
+        console.log('Creating customer with data:', customerData);
+  
         const response = await fetch('/api/customers', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: customerInfo.name,
-            email: customerInfo.email,
-            phone: customerInfo.phone,
-            source: 'WEBSITE',
-            sellTradeRequest: true,
-            notes: `Added from ${submission.type.toUpperCase()} request - ${new Date().toLocaleDateString()}`
-          }),
+          body: JSON.stringify(customerData)
         });
-
+  
         if (!response.ok) {
-          throw new Error('Failed to update customer database');
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to create customer');
         }
+  
+        const result = await response.json();
+        console.log('Customer created:', result);
       }
-
+  
       setStatusMessage(`Request ${status.toLowerCase()} successfully`);
-      // Close modal after short delay
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (error) {
-      console.error('Error updating status:', error);
-      setStatusMessage('Error updating status. Please try again.');
+      console.error('Error:', error);
+      setStatusMessage(error.message || 'Error updating status');
     } finally {
       setUpdating(false);
     }

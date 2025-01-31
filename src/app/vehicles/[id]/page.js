@@ -1,4 +1,3 @@
-// src/app/vehicles/[id]/page.js
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -12,11 +11,11 @@ export default function VehicleDetailsPage({ params }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const vehicleId = params?.id 
 
-useEffect(() => {
+  useEffect(() => {
     if (vehicleId) {
       fetchVehicleDetails()
     }
-  }, [vehicleId]) //
+  }, [vehicleId])
 
   const fetchVehicleDetails = async () => {
     try {
@@ -46,12 +45,12 @@ useEffect(() => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">Vehicle Not Found</h2>
-          <p className="mt-2 text-gray-600">The vehicle you're looking for might have been removed or sold.</p>
+          <p className="mt-2 text-gray-600 mb-4">The vehicle you're looking for might have been removed or sold.</p>
           <Link
             href="/vehicles"
-            className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-md shadow hover:bg-gray-50 transition-colors group"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
             Back to Inventory
           </Link>
         </div>
@@ -65,16 +64,16 @@ useEffect(() => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
         href="/vehicles"
-        className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6"
+        className="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-md shadow hover:bg-gray-50 transition-colors mb-8 group"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
+        <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
         Back to Inventory
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image Gallery */}
         <div className="space-y-4">
-          <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden">
+          <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden shadow-md">
             <img
               src={vehicle.images[selectedImage] || '/api/placeholder/800/600'}
               alt={vehicleName}
@@ -87,7 +86,7 @@ useEffect(() => {
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`relative aspect-w-16 aspect-h-9 rounded-lg overflow-hidden 
+                  className={`relative aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-sm
                     ${selectedImage === index ? 'ring-2 ring-blue-600' : 'hover:opacity-75'}`}
                 >
                   <img
@@ -103,7 +102,7 @@ useEffect(() => {
 
         {/* Vehicle Details */}
         <div>
-          <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="bg-white rounded-lg p-6 shadow-md">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{vehicleName}</h1>
             <p className="text-2xl text-blue-600 font-bold mb-4">
               ${vehicle.price.toLocaleString()}
@@ -112,30 +111,34 @@ useEffect(() => {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <h3 className="text-sm text-gray-500">Stock #</h3>
-                <p className="text-gray-900">{vehicle.stockNumber}</p>
+                <p className="text-gray-900 font-medium">{vehicle.stockNumber}</p>
+              </div>
+              <div>
+                <h3 className="text-sm text-gray-500">VIN </h3>
+                <p className="text-gray-900 font-medium">{vehicle.vin}</p>
               </div>
               <div>
                 <h3 className="text-sm text-gray-500">Mileage</h3>
-                <p className="text-gray-900">{vehicle.mileage.toLocaleString()} mi</p>
+                <p className="text-gray-900 font-medium">{vehicle.mileage.toLocaleString()} mi</p>
               </div>
               <div>
                 <h3 className="text-sm text-gray-500">Transmission</h3>
-                <p className="text-gray-900">{vehicle.transmission}</p>
+                <p className="text-gray-900 font-medium">{vehicle.transmission}</p>
               </div>
               <div>
                 <h3 className="text-sm text-gray-500">Exterior Color</h3>
-                <p className="text-gray-900">{vehicle.exteriorColor}</p>
+                <p className="text-gray-900 font-medium">{vehicle.exteriorColor}</p>
               </div>
             </div>
 
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2">Description</h3>
-              <p className="text-gray-600">{vehicle.description}</p>
+              <p className="text-gray-600 leading-relaxed">{vehicle.description}</p>
             </div>
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
+              className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
             >
               Schedule Test Drive
             </button>

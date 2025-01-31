@@ -50,24 +50,35 @@ export async function POST(request) {
   try {
     const data = await request.json();
     
-    // Check if customer already exists
+    if (!data.email) {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if customer exists
     const existingCustomer = await prisma.customer.findUnique({
       where: { email: data.email }
     });
 
     if (existingCustomer) {
-      // Update existing customer with sell/trade flag if needed
-      if (data.sellTradeRequest) {
-        const updatedCustomer = await prisma.customer.update({
-          where: { id: existingCustomer.id },
-          data: {
-            sellTradeRequest: true,
-            notes: `${existingCustomer.notes || ''}\nUpdated from sell/trade request - ${new Date().toLocaleDateString()}`
-          }
-        });
-        return NextResponse.json(updatedCustomer);
-      }
-      return NextResponse.json(existingCustomer);
+      // Update existing customer
+      const updatedCustomer = await prisma.customer.update({
+        where: { id: existingCustomer.id },
+        data: {
+          // Update all fields, not just sellTradeRequest
+          name: data.name || existingCustomer.name,
+          phone: data.phone || existingCustomer.phone,
+          source: data.source || existingCustomer.source,
+          sellTradeRequest: true, // Always set to true for sell/trade requests
+          notes: existingCustomer.notes 
+            ? `${existingCustomer.notes}\nUpdated from sell/trade request - ${new Date().toLocaleDateString()}`
+            : `Updated from sell/trade request - ${new Date().toLocaleDateString()}`
+        }
+      });
+      console.log('Updated existing customer:', updatedCustomer);
+      return NextResponse.json(updatedCustomer);
     }
 
     // Create new customer
@@ -77,16 +88,17 @@ export async function POST(request) {
         email: data.email,
         phone: data.phone,
         source: data.source || 'WEBSITE',
-        sellTradeRequest: data.sellTradeRequest || false,
-        notes: data.notes || `Created from ${data.source || 'WEBSITE'} - ${new Date().toLocaleDateString()}`
+        sellTradeRequest: true, // Always set to true for new customers from sell/trade
+        notes: data.notes || `Created from sell/trade request - ${new Date().toLocaleDateString()}`
       }
     });
 
+    console.log('Created new customer:', customer);
     return NextResponse.json(customer);
   } catch (error) {
-    console.error('Error creating customer:', error);
+    console.error('Error in customer operation:', error);
     return NextResponse.json(
-      { error: 'Failed to create customer' },
+      { error: 'Failed to process customer', details: error.message },
       { status: 500 }
     );
   }
