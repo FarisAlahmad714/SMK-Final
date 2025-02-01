@@ -126,6 +126,41 @@ export async function GET(request) {
     // Get total customers
     const totalCustomers = await prisma.customer.count();
 
+    // Get sell/trade metrics
+    // Monthly requests
+    const monthlyRequests = await prisma.vehicleSubmission.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lt: end
+        }
+      }
+    });
+
+    const monthlySellRequests = monthlyRequests.filter(req => req.type === 'sell').length;
+    const monthlyTradeRequests = monthlyRequests.filter(req => req.type === 'trade').length;
+
+    // All-time totals
+    const totalSellRequests = await prisma.vehicleSubmission.count({
+      where: { type: 'sell' }
+    });
+
+    const totalTradeRequests = await prisma.vehicleSubmission.count({
+      where: { type: 'trade' }
+    });
+
+    // Status counts
+    const statusCounts = await prisma.vehicleSubmission.groupBy({
+      by: ['status'],
+      _count: {
+        status: true
+      }
+    });
+
+    const pendingSellTrade = statusCounts.find(s => s.status === 'PENDING_REVIEW')?._count.status || 0;
+    const approvedSellTrade = statusCounts.find(s => s.status === 'APPROVED')?._count.status || 0;
+    const rejectedSellTrade = statusCounts.find(s => s.status === 'REJECTED')?._count.status || 0;
+
     // Save monthly metrics
     await prisma.monthlyMetric.upsert({
       where: { month: start },
@@ -144,7 +179,14 @@ export async function GET(request) {
         cancelledAppointments,
         activeInventory,
         totalCustomers,
-        totalVehicles
+        totalVehicles,
+        monthlySellRequests,
+        monthlyTradeRequests,
+        pendingSellTrade,
+        approvedSellTrade,
+        rejectedSellTrade,
+        totalSellRequests,
+        totalTradeRequests
       },
       update: {
         totalAppointments,
@@ -160,11 +202,18 @@ export async function GET(request) {
         cancelledAppointments,
         activeInventory,
         totalCustomers,
-        totalVehicles
+        totalVehicles,
+        monthlySellRequests,
+        monthlyTradeRequests,
+        pendingSellTrade,
+        approvedSellTrade,
+        rejectedSellTrade,
+        totalSellRequests,
+        totalTradeRequests
       }
     });
 
-    // Return all metrics including cancellation reasons
+    // Return all metrics
     return NextResponse.json({
       totalAppointments,
       websiteAppointments,
@@ -180,7 +229,14 @@ export async function GET(request) {
       activeInventory,
       totalCustomers,
       totalVehicles,
-      cancellationReasons: formattedReasons
+      cancellationReasons: formattedReasons,
+      monthlySellRequests,
+      monthlyTradeRequests,
+      totalSellRequests,
+      totalTradeRequests,
+      pendingSellTrade,
+      approvedSellTrade,
+      rejectedSellTrade
     });
 
   } catch (error) {

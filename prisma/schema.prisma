@@ -115,6 +115,13 @@ model MonthlyMetric {
   activeInventory       Int      @default(0)
   totalCustomers        Int      @default(0)
   totalVehicles         Int      @default(0)
+  monthlySellRequests    Int      @default(0)
+  monthlyTradeRequests   Int      @default(0)
+  pendingSellTrade      Int      @default(0)
+  approvedSellTrade     Int      @default(0)
+  rejectedSellTrade     Int      @default(0)
+  totalSellRequests     Int      @default(0)
+  totalTradeRequests    Int      @default(0)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
