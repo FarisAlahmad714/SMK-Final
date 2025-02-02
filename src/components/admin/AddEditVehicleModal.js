@@ -36,7 +36,7 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
       const res = await fetch('/api/vehicles/stock-number')
       if (!res.ok) throw new Error('Failed to generate stock number')
       const data = await res.json()
-      setFormData(prev => ({ ...prev, stockNumber: data.stockNumber }))
+      setFormData((prev) => ({ ...prev, stockNumber: data.stockNumber }))
     } catch (error) {
       console.error('Error generating stock number:', error)
       setError('Error generating stock number.')
@@ -55,6 +55,7 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
         return
       }
 
+      // Otherwise, just save the vehicle
       await saveVehicle()
     } catch (error) {
       console.error('Error saving vehicle:', error)
@@ -64,15 +65,30 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
     }
   }
 
+  // NOTE: We removed the redundant transaction creation here!
+  const handleFinalPriceSave = async (finalPrice, customerId) => {
+    setLoading(true)
+    try {
+      // Simply update the vehicle with the final price
+      await saveVehicle(finalPrice)
+    } catch (error) {
+      console.error('Error updating vehicle:', error)
+      setError(error.message)
+    } finally {
+      setLoading(false)
+      setIsFinalPriceModalOpen(false)
+    }
+  }
+
   const saveVehicle = async (finalPrice = null) => {
     const url = vehicle ? `/api/vehicles/${vehicle.id}` : '/api/vehicles'
     const method = vehicle ? 'PUT' : 'POST'
 
     const dataToSend = {
       ...formData,
-      vin: formData.vin, 
+      vin: formData.vin,
       soldPrice: finalPrice,
-      soldDate: finalPrice ? new Date().toISOString() : null
+      soldDate: finalPrice ? new Date().toISOString() : null,
     }
 
     const res = await fetch(url, {
@@ -92,46 +108,9 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
     onClose()
   }
 
-  const handleFinalPriceSave = async (finalPrice, customerId) => {
-    setLoading(true);
-    try {
-      // First create the transaction
-      const transaction = {
-        vehicleId: vehicle.id,  // Use the original vehicle's id
-        customerId: customerId,
-        salePrice: parseFloat(finalPrice),
-        profit: parseFloat(finalPrice) - parseFloat(formData.cost),
-        profitMargin: ((parseFloat(finalPrice) - parseFloat(formData.cost)) / parseFloat(finalPrice) * 100),
-        date: new Date().toISOString()
-      };
-  
-      const transactionRes = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(transaction),
-      });
-  
-      if (!transactionRes.ok) {
-        const errorData = await transactionRes.json();
-        throw new Error(errorData.error || 'Failed to create transaction');
-      }
-  
-      // Then update the vehicle
-      await saveVehicle(finalPrice);
-    } catch (error) {
-      console.error('Error updating vehicle:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-      setIsFinalPriceModalOpen(false);
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
@@ -167,20 +146,21 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
                     className="w-full border rounded-md px-3 py-2 bg-gray-50"
                   />
                 </div>
+
                 <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    VIN Number
-  </label>
-  <input
-    type="text"
-    name="vin"
-    required
-    className="w-full border rounded-md px-3 py-2"
-    value={formData.vin}
-    onChange={handleChange}
-    placeholder="Enter VIN Number"
-  />
-</div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    VIN Number
+                  </label>
+                  <input
+                    type="text"
+                    name="vin"
+                    required
+                    className="w-full border rounded-md px-3 py-2"
+                    value={formData.vin}
+                    onChange={handleChange}
+                    placeholder="Enter VIN Number"
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -370,16 +350,16 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
       </div>
 
       {isFinalPriceModalOpen && (
-  <FinalPriceModal
-    isOpen={isFinalPriceModalOpen}
-    onClose={() => setIsFinalPriceModalOpen(false)}
-    onSave={handleFinalPriceSave}
-    vehicle={{
-      ...formData,
-      id: vehicle.id  // Add the id from the original vehicle prop
-    }}
-  />
-)}
+        <FinalPriceModal
+          isOpen={isFinalPriceModalOpen}
+          onClose={() => setIsFinalPriceModalOpen(false)}
+          onSave={handleFinalPriceSave}
+          vehicle={{
+            ...formData,
+            id: vehicle.id, // Make sure we pass the original vehicle ID
+          }}
+        />
+      )}
     </>
   )
 }
