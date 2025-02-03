@@ -1,4 +1,3 @@
-// src/components/vehicles/VehicleFilters.js
 'use client'
 import { useState, useEffect } from 'react'
 
@@ -25,7 +24,15 @@ export default function VehicleFilters({ onFilterChange }) {
       try {
         const res = await fetch('/api/vehicles')
         const vehicles = await res.json()
-        const uniqueMakes = [...new Set(vehicles.map(v => v.make))].sort()
+        // Custom sorting based on the vehicle's popularity/count
+        const makeCount = vehicles.reduce((acc, vehicle) => {
+          acc[vehicle.make] = (acc[vehicle.make] || 0) + 1
+          return acc
+        }, {})
+        
+        const uniqueMakes = [...new Set(vehicles.map(v => v.make))]
+          .sort((a, b) => makeCount[b] - makeCount[a]) // Sort by frequency/count
+        
         setMakes(uniqueMakes)
       } catch (error) {
         console.error('Error fetching makes:', error)
