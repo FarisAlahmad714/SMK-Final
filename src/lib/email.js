@@ -493,7 +493,7 @@ export async function sendSaleThankYouEmail({ customerName, email, vehicle, sale
               </p>
             </div>
             <p style="font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 40px;">
-              If you have any questions about your vehicle, need further assistance, or want to explore more options, feel free to reach out to us anytime. We’re here to help!
+              If you have any questions about your vehicle, need further assistance, or want to explore more options, feel free to reach out to us anytime. We're here to help!
             </p>
             <p style="font-size: 20px; line-height: 1.6; color: #4a5568; text-align: center;">Thank you again for your business and welcome to the SMK Auto family!</p>
           </div>

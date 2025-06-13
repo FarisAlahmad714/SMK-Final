@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls -la /mnt/c/Users/Faris/OneDrive/Desktop/Code/Smkauto-Master/SMK-Final/public/images)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

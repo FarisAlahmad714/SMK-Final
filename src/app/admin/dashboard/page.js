@@ -79,7 +79,16 @@ export default function DashboardPage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Performance Dashboard</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Performance Dashboard</h1>
+              <div className="mt-2 flex items-center">
+                <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full mr-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  Demo Environment
+                </div>
+                <span className="text-sm text-gray-500">Advanced Analytics & Business Intelligence</span>
+              </div>
+            </div>
             <div className="mt-4 md:mt-0 flex items-center bg-gray-50 rounded-lg p-2">
               <button 
                 onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}

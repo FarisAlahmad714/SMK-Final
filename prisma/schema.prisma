@@ -26,7 +26,7 @@ model Vehicle {
   model          String
   year           Int
   price          Float               // Listing price
-  cost           Float               // Vehicle purchase cost - NEW FIELD
+  cost           Float @default(0)   // Vehicle purchase cost
   mileage        Int
   transmission   String
   exteriorColor  String
@@ -124,7 +124,7 @@ model MonthlyMetric {
   totalSellRequests     Int      @default(0)
   totalTradeRequests    Int      @default(0)
   createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  updatedAt             DateTime @default(now()) @updatedAt
 }
 
 model VehicleSubmission {

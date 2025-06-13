@@ -6,7 +6,6 @@ import bcrypt from 'bcryptjs'
 export async function POST(request) {
   try {
     const { email, password } = await request.json()
-    console.log('Login attempt for:', email)
 
     const admin = await prisma.admin.findUnique({
       where: { email }
