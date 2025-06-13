@@ -4,9 +4,6 @@ const nextConfig = {
     domains: ['localhost'],
     formats: ['image/webp', 'image/avif'],
   },
-  experimental: {
-    optimizeCss: true,
-  },
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
