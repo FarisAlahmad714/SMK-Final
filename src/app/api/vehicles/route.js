@@ -10,10 +10,12 @@ export async function POST(request) {
     const vehicle = await prisma.vehicle.create({
       data: {
         stockNumber: data.stockNumber,
+        vin:data.vin,
         make: data.make,
         model: data.model,
         year: parseInt(data.year),
         price: parseFloat(data.price),
+        cost: parseFloat(data.cost), 
         mileage: parseInt(data.mileage),
         transmission: data.transmission,
         exteriorColor: data.exteriorColor,
@@ -38,20 +40,23 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
 
-    // Existing query parameters
+    // Parse query parameters
     const sort = searchParams.get('sort')
     const limit = searchParams.get('limit')
     const make = searchParams.get('make')
     const minPrice = searchParams.get('minPrice')
     const maxPrice = searchParams.get('maxPrice')
     const year = searchParams.get('year')
-
-    // NEW search parameter
+    const status = searchParams.get('status')
     const search = searchParams.get('search')
 
     // Build filter conditions
     let whereClause = {}
 
+    // Handle status filter - default to AVAILABLE if not specified
+    whereClause.status = status || 'AVAILABLE'
+
+    // Add other filters only if they're provided
     if (make) {
       whereClause.make = make
     }
@@ -66,27 +71,43 @@ export async function GET(request) {
       whereClause.year = parseInt(year)
     }
 
-    // If `search` is provided, search by make OR model (case-insensitive)
     if (search) {
-      // "OR" so it matches either make OR model
-      // Using "contains" + "mode: 'insensitive'" for partial, case-insensitive match
       whereClause.OR = [
         { make: { contains: search, mode: 'insensitive' } },
         { model: { contains: search, mode: 'insensitive' } },
+        { stockNumber: { contains: search, mode: 'insensitive' } } // Added stock number search
       ]
     }
 
-    // Build ordering based on sort parameter
-    let orderBy = { createdAt: 'desc' } // default sorting
-    if (sort === 'price-asc') orderBy = { price: 'asc' }
-    if (sort === 'price-desc') orderBy = { price: 'desc' }
-    if (sort === 'newest') orderBy = { createdAt: 'desc' }
-    if (sort === 'oldest') orderBy = { createdAt: 'asc' }
+    // Optimized ordering logic
+    const orderBy = {
+      'price-asc': { price: 'asc' },
+      'price-desc': { price: 'desc' },
+      'newest': { createdAt: 'desc' },
+      'oldest': { createdAt: 'asc' }
+    }[sort] || { createdAt: 'desc' }; // Default to newest
+
+    // For featured vehicles (used in FeaturedVehicles component)
+    // Add image selection if the query is for featured vehicles
+    const select = limit && limit <= 3 ? {
+      id: true,
+      make: true,
+      model: true,
+      year: true,
+      price: true,
+      mileage: true,
+      transmission: true,
+      exteriorColor: true,
+      images: true,
+      status: true,
+      createdAt: true
+    } : undefined;
 
     const vehicles = await prisma.vehicle.findMany({
       where: whereClause,
       orderBy,
       take: limit ? parseInt(limit) : undefined,
+      select
     })
 
     return NextResponse.json(vehicles)

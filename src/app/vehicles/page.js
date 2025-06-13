@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import VehicleGrid from "@/components/vehicles/VehicleGrid";
 import VehicleFilters from "@/components/vehicles/VehicleFilters";
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 export default function VehiclesPage() {
   const [filters, setFilters] = useState({
@@ -24,11 +25,13 @@ export default function VehiclesPage() {
         <h1 className="text-3xl font-bold text-gray-900">Available Vehicles</h1>
         
         {/* “Back to Home” button */}
-        <Link href="/">
-          <button className="text-blue-600 hover:text-blue-800">
-            &larr; Back to Home
-          </button>
-        </Link>
+        <Link 
+    href="/"
+    className="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-md shadow hover:bg-gray-50 transition-colors group"
+  >
+    <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
+    Back to Home
+  </Link>
       </div>
 
       {/* The Search Bar */}

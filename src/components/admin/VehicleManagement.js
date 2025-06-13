@@ -1,4 +1,3 @@
-// src/components/admin/VehicleManagement.js
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Search, Edit, Trash } from 'lucide-react'
@@ -29,7 +28,6 @@ export default function VehicleManagement() {
     }
   }
 
-  // Group vehicles by make
   const groupedVehicles = useMemo(() => {
     const grouped = vehicles.reduce((acc, vehicle) => {
       const make = vehicle.make
@@ -37,20 +35,19 @@ export default function VehicleManagement() {
       acc[make].push(vehicle)
       return acc
     }, {})
-
+    
     // Sort vehicles within each make by year (newest first)
     Object.keys(grouped).forEach(make => {
       grouped[make].sort((a, b) => b.year - a.year)
     })
-
     return grouped
   }, [vehicles])
 
   const filteredGroups = useMemo(() => {
     if (!searchTerm) {
-      // Sort makes alphabetically
+      // Sort makes alphabetically using localeCompare for reliable sorting
       return Object.keys(groupedVehicles)
-        .sort()
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
         .reduce((obj, key) => {
           obj[key] = groupedVehicles[key];
           return obj;
@@ -73,12 +70,10 @@ export default function VehicleManagement() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this vehicle?')) return
-
     try {
       const res = await fetch(`/api/vehicles/${id}`, {
         method: 'DELETE',
       })
-
       if (!res.ok) throw new Error('Failed to delete vehicle')
       fetchVehicles()
     } catch (error) {
@@ -140,11 +135,19 @@ export default function VehicleManagement() {
                       </h3>
                       <div className="mt-1 text-sm text-gray-500 space-x-4">
                         <span>Stock #{vehicle.stockNumber}</span>
-                        <span>${vehicle.price.toLocaleString()}</span>
+                        <span>VIN: {vehicle.vin}</span>
+                        <span>Listing Price: ${vehicle.price.toLocaleString()}</span>
+                        <span>Cost: ${vehicle.cost.toLocaleString()}</span>
+                        {vehicle.status === 'SOLD' && vehicle.soldPrice && (
+                          <span className="text-green-600 font-medium">
+                            Sold Price: ${Number(vehicle.soldPrice).toLocaleString()}
+                          </span>
+                        )}
                         <span>{vehicle.mileage.toLocaleString()} miles</span>
                         <span className={`
                           inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                          ${vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 
+                            vehicle.status === 'SOLD' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}
                         `}>
                           {vehicle.status}
                         </span>

@@ -1,11 +1,14 @@
 // src/app/sell-trade/components/ConditionForm.js
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
 export default function ConditionForm({ formData, setFormData, onNext, onPrev }) {
   const [isComplete, setIsComplete] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [vehiclesError, setVehiclesError] = useState('');
 
   const updateCondition = (field, value) => {
     setFormData(prev => ({
@@ -14,6 +17,38 @@ export default function ConditionForm({ formData, setFormData, onNext, onPrev })
         ...prev.condition,
         [field]: value
       }
+    }));
+  };
+
+  // Fetch available vehicles if intent is 'trade'
+  useEffect(() => {
+    if (formData.intent === 'trade') {
+      fetchAvailableVehicles();
+    }
+  }, [formData.intent]);
+
+  const fetchAvailableVehicles = async () => {
+    setVehiclesLoading(true);
+    setVehiclesError('');
+    try {
+      const res = await fetch('/api/vehicles?status=AVAILABLE');
+      if (!res.ok) {
+        throw new Error(`Failed to fetch vehicles. Status: ${res.status}`);
+      }
+      const data = await res.json();
+      setVehicles(data);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+      setVehiclesError('Failed to load available vehicles. Please try again.');
+    } finally {
+      setVehiclesLoading(false);
+    }
+  };
+
+  const handleDesiredVehicleChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      desiredVehicleId: e.target.value
     }));
   };
 
@@ -117,6 +152,36 @@ export default function ConditionForm({ formData, setFormData, onNext, onPrev })
             placeholder="List any aftermarket modifications (one per line)"
           />
         </div>
+
+        {/* Desired Vehicle Selection - Conditionally Rendered */}
+        {formData.intent === 'trade' && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Desired Vehicle for Trade-In
+            </label>
+            {vehiclesLoading ? (
+              <p>Loading available vehicles...</p>
+            ) : vehiclesError ? (
+              <p className="text-red-600">{vehiclesError}</p>
+            ) : vehicles.length === 0 ? (
+              <p>No available vehicles for trade-in at the moment.</p>
+            ) : (
+              <select
+                className="w-full px-4 py-2 border rounded-md"
+                value={formData.desiredVehicleId}
+                onChange={handleDesiredVehicleChange}
+                required
+              >
+                <option value="">Select a vehicle</option>
+                {vehicles.map((vehicle) => (
+                  <option key={vehicle.id} value={vehicle.id}>
+                    {vehicle.year} {vehicle.make} {vehicle.model} - #{vehicle.stockNumber}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Navigation Buttons */}
@@ -131,6 +196,7 @@ export default function ConditionForm({ formData, setFormData, onNext, onPrev })
         <button
           onClick={onNext}
           className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          disabled={formData.intent === 'trade' && !formData.desiredVehicleId}
         >
           Continue to Photos
         </button>

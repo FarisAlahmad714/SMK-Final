@@ -1,6 +1,5 @@
-// src/app/sell-trade/components/ReviewSubmit.js
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,32 +9,75 @@ export default function ReviewSubmit({ formData, onPrev }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const [desiredVehicle, setDesiredVehicle] = useState(null);
+  const [desiredVehicleLoading, setDesiredVehicleLoading] = useState(false);
+  const [desiredVehicleError, setDesiredVehicleError] = useState('');
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+
+  useEffect(() => {
+    if (formData.intent === 'trade' && formData.desiredVehicleId) {
+      fetchDesiredVehicle();
+    }
+  }, [formData.intent, formData.desiredVehicleId]);
+
+  const fetchDesiredVehicle = async () => {
+    setDesiredVehicleLoading(true);
+    setDesiredVehicleError('');
+    try {
+      const res = await fetch(`/api/vehicles/${formData.desiredVehicleId}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch desired vehicle details. Status: ${res.status}`);
+      }
+      const data = await res.json();
+      setDesiredVehicle(data);
+    } catch (error) {
+      console.error('Error fetching desired vehicle:', error);
+      setDesiredVehicleError('Failed to load desired vehicle details.');
+    } finally {
+      setDesiredVehicleLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError('');
 
+    // Validate customer info
+    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+      setError('Please fill in all customer information fields');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const response = await fetch('/api/sell-trade/submit', {
+      const response = await fetch('/api/sell-trade', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          customerInfo
+        })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit form');
+        const errorData = await response.json();
+        throw new Error(errorData?.error || 'Failed to submit form');
       }
 
       setSuccess(true);
-      // Redirect to home after 3 seconds
       setTimeout(() => {
         router.push('/');
       }, 3000);
       
     } catch (err) {
       setError('There was an error submitting your request. Please try again.');
+      console.error('Submission Error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -68,6 +110,7 @@ export default function ReviewSubmit({ formData, onPrev }) {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Review Your Information</h2>
+
 
       {/* Intent Type */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -147,6 +190,39 @@ export default function ReviewSubmit({ formData, onPrev }) {
         )}
       </div>
 
+      {/* Desired Vehicle for Trade-In */}
+      {formData.intent === 'trade' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Desired Vehicle for Trade-In</h3>
+          {desiredVehicleLoading ? (
+            <p>Loading desired vehicle details...</p>
+          ) : desiredVehicleError ? (
+            <p className="text-red-600">{desiredVehicleError}</p>
+          ) : desiredVehicle ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-sm text-gray-500">Year</dt>
+                <dd className="font-medium">{desiredVehicle.year}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Make</dt>
+                <dd className="font-medium">{desiredVehicle.make}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Model</dt>
+                <dd className="font-medium">{desiredVehicle.model}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Stock Number</dt>
+                <dd className="font-medium">{desiredVehicle.stockNumber}</dd>
+              </div>
+            </div>
+          ) : (
+            <p>No desired vehicle selected.</p>
+          )}
+        </div>
+      )}
+
       {/* Photos Preview */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Uploaded Photos ({formData.photos.length})</h3>
@@ -172,6 +248,46 @@ export default function ReviewSubmit({ formData, onPrev }) {
         </div>
       )}
 
+
+ {/* Customer Information Section */}
+ <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Your Contact Information</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={customerInfo.name}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter your full name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Email Address</label>
+            <input
+              type="email"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={customerInfo.email}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="Enter your email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={customerInfo.phone}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="Enter your phone number"
+            />
+          </div>
+        </div>
+      </div>
       {/* Action Buttons */}
       <div className="flex justify-between mt-8">
         <button

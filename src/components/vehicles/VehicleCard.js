@@ -34,6 +34,9 @@ export default function VehicleCard({ vehicle }) {
           <div className="text-sm text-gray-500">
             Stock #: {vehicle.stockNumber}
           </div>
+          <div className="text-sm text-gray-500">
+            VIN: {vehicle.vin} {/* Display the VIN */}
+          </div>
         </div>
         <Link
           href={`/vehicles/${vehicle.id}`}

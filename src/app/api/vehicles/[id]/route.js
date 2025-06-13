@@ -2,8 +2,11 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-export async function GET(request, { params }) {
-  if (!params?.id) {
+export async function GET(request, context) {
+  const { params } = context;
+  const id = await params.id;
+
+  if (!id) {
     return NextResponse.json(
       { error: 'Vehicle ID is required' },
       { status: 400 }
@@ -13,7 +16,7 @@ export async function GET(request, { params }) {
   try {
     const vehicle = await prisma.vehicle.findUnique({
       where: { 
-        id: String(params.id)
+        id: String(id)
       }
     })
 
@@ -34,8 +37,11 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PUT(request, { params }) {
-  if (!params?.id) {
+export async function PUT(request, context) {
+  const { params } = context;
+  const id = await params.id;
+
+  if (!id) {
     return NextResponse.json(
       { error: 'Vehicle ID is required' },
       { status: 400 }
@@ -45,15 +51,72 @@ export async function PUT(request, { params }) {
   try {
     const data = await request.json()
     
+    // If status is being changed to SOLD, handle special case
+    if (data.status === 'SOLD') {
+      const vehicle = await prisma.vehicle.update({
+        where: { 
+          id: String(id)
+        },
+        data: {
+          ...data,
+          stockNumber: data.stockNumber,
+          vin:data.vin,
+          make: data.make,
+          model: data.model,
+          year: parseInt(data.year),
+          price: parseFloat(data.price),
+          cost: parseFloat(data.cost),
+          mileage: parseInt(data.mileage),
+          transmission: data.transmission,
+          exteriorColor: data.exteriorColor,
+          description: data.description || '',
+          images: data.images || [],
+          soldPrice: data.soldPrice ? parseFloat(data.soldPrice) : undefined,
+          soldDate: data.soldDate || new Date().toISOString()
+        }
+      })
+
+      // Update monthly metrics
+      const month = new Date(vehicle.soldDate)
+      month.setDate(1)
+      month.setHours(0, 0, 0, 0)
+
+      await prisma.monthlyMetric.upsert({
+        where: { month },
+        create: {
+          month,
+          totalVehiclesSold: 1,
+          totalRevenue: parseFloat(vehicle.soldPrice) - parseFloat(vehicle.cost),
+          totalVehicleCosts: parseFloat(vehicle.cost)
+        },
+        update: {
+          totalVehiclesSold: { increment: 1 },
+          totalRevenue: { increment: parseFloat(vehicle.soldPrice) - parseFloat(vehicle.cost) },
+          totalVehicleCosts: { increment: parseFloat(vehicle.cost) }
+        }
+      })
+
+      return NextResponse.json(vehicle)
+    }
+
+    // Regular update for non-SOLD status
     const vehicle = await prisma.vehicle.update({
       where: { 
-        id: String(params.id)
+        id: String(id)
       },
       data: {
         ...data,
-        year: data.year ? parseInt(data.year) : undefined,
-        price: data.price ? parseFloat(data.price) : undefined,
-        mileage: data.mileage ? parseInt(data.mileage) : undefined,
+        stockNumber: data.stockNumber,
+        make: data.make,
+        model: data.model,
+        year: parseInt(data.year),
+        price: parseFloat(data.price),
+        cost: parseFloat(data.cost),
+        mileage: parseInt(data.mileage),
+        transmission: data.transmission,
+        exteriorColor: data.exteriorColor,
+        description: data.description || '',
+        images: data.images || []
       }
     })
 
@@ -67,8 +130,11 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
-  if (!params?.id) {
+export async function DELETE(request, context) {
+  const { params } = context;
+  const id = await params.id;
+
+  if (!id) {
     return NextResponse.json(
       { error: 'Vehicle ID is required' },
       { status: 400 }
@@ -78,7 +144,7 @@ export async function DELETE(request, { params }) {
   try {
     await prisma.vehicle.delete({
       where: { 
-        id: String(params.id)
+        id: String(id)
       }
     })
 

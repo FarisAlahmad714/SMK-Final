@@ -1,14 +1,12 @@
-// src/app/api/sell-trade/route.js
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { sendSellTradeEmails } from '@/lib/email';
 
 export async function GET(request) {
   try {
-    // Get query parameters if needed
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    // Build where clause
     const whereClause = {};
     if (status) {
       whereClause.status = status;
@@ -18,7 +16,7 @@ export async function GET(request) {
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
-        // Include any relations if needed
+        desiredVehicle: true, // Include desiredVehicle details
       }
     });
     
@@ -44,6 +42,14 @@ export async function POST(request) {
       );
     }
 
+    // If intent is 'trade', ensure desiredVehicleId is provided
+    if (data.intent === 'trade' && !data.desiredVehicleId) {
+      return NextResponse.json(
+        { error: 'Desired Vehicle ID is required for trade-in submissions' },
+        { status: 400 }
+      );
+    }
+
     // Create the submission with all possible fields
     const submission = await prisma.vehicleSubmission.create({
       data: {
@@ -52,6 +58,7 @@ export async function POST(request) {
         vehicleDetails: data.vehicleDetails,
         condition: data.condition,
         ownership: data.ownership,
+        desiredVehicleId: data.intent === 'trade' ? data.desiredVehicleId : null,
         photoUrls: data.photos?.map(p => p.preview) || [],
         status: 'PENDING_REVIEW',
         notes: data.notes,
@@ -60,14 +67,23 @@ export async function POST(request) {
         updatedAt: new Date()
       },
       include: {
-        // Include any relations if needed
+        desiredVehicle: true,
       }
     });
 
-    // Optional: Send notification emails
-    // if (process.env.ENABLE_NOTIFICATIONS === 'true') {
-    //   await sendNotificationEmails({...})
-    // }
+    // After successful submission, send emails using the existing email utility
+    try {
+      await sendSellTradeEmails({
+        customerName: data.customerInfo.name,
+        email: data.customerInfo.email,
+        type: data.intent,
+        vehicleDetails: data.vehicleDetails,
+        desiredVehicle: submission.desiredVehicle
+      });
+    } catch (emailError) {
+      console.error('Warning: Failed to send email notifications:', emailError);
+      // Continue with success response even if emails fail
+    }
 
     return NextResponse.json({
       success: true,

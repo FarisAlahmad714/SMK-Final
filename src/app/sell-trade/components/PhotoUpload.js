@@ -1,5 +1,3 @@
-// src/app/sell-trade/components/PhotoUpload.js
-
 'use client';
 import { useState, useRef } from 'react';
 import { ChevronLeft, Upload, X, Check, AlertCircle } from 'lucide-react';
@@ -10,61 +8,69 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const MAX_PHOTOS = 25;
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const MIN_PHOTOS = 4;
+  const MAX_PHOTOS = 10;
 
   const photoRequirements = [
-    { title: 'Front View', description: 'Straight on, entire car visible' },
-    { title: 'Rear View', description: 'Straight on, entire car visible' },
-    { title: 'Driver Side', description: 'Full length of vehicle' },
-    { title: 'Passenger Side', description: 'Full length of vehicle' },
-    { title: 'Interior Dashboard', description: 'Including steering wheel and gauges' },
-    { title: 'Front Seats', description: 'Showing condition of seats' },
+    { title: 'Exterior Front', description: 'Full front view' },
+    { title: 'Exterior Back', description: 'Full rear view' },
+    { title: 'Interior Dashboard', description: 'From driver side' },
     { title: 'Rear Seats', description: 'If applicable' },
     { title: 'Odometer', description: 'Clear reading of current mileage' },
-    // Add more required photos as needed
   ];
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    setError('');
-
-    // Validate number of files
+  const validateFiles = (files) => {
     if (uploadedPhotos.length + files.length > MAX_PHOTOS) {
       setError(`Maximum ${MAX_PHOTOS} photos allowed`);
-      return;
+      return [];
     }
 
-    // Process each file
-    const validFiles = files.filter(file => {
-      // Check file size
-      if (file.size > MAX_SIZE) {
-        setError('Some files were too large (max 5MB)');
+    return files.filter(file => {
+      const isValidSize = file.size <= 5 * 1024 * 1024;
+      const isValidType = file.type.startsWith('image/');
+      
+      if (!isValidSize || !isValidType) {
+        setError('Each photo must be an image under 5MB');
         return false;
       }
-
-      // Check file type
-      if (!file.type.startsWith('image/')) {
-        setError('Only image files are allowed');
-        return false;
-      }
-
       return true;
     });
+  };
 
-    // Add previews for valid files
-    validFiles.forEach(file => {
+  const createPhotoObject = (file, preview) => ({
+    file,
+    preview,
+    name: file.name,
+    status: 'uploaded'
+  });
+
+  const addPhotoToState = (photoObject) => {
+    setUploadedPhotos(prev => [...prev, photoObject]);
+  };
+
+  const processFile = async (file) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setUploadedPhotos(prev => [...prev, {
-          file,
-          preview: e.target.result,
-          name: file.name,
-          status: 'uploaded'
-        }]);
+        const photoObject = createPhotoObject(file, e.target.result);
+        resolve(photoObject);
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files);
+    setError('');
+    
+    const validFiles = validateFiles(files);
+    if (validFiles.length === 0) return;
+
+    const photoObjects = await Promise.all(
+      validFiles.map(processFile)
+    );
+    
+    photoObjects.forEach(addPhotoToState);
   };
 
   const removePhoto = (index) => {
@@ -72,14 +78,13 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
   };
 
   const handleSubmit = async () => {
-    if (uploadedPhotos.length < photoRequirements.length) {
-      setError(`Please upload at least ${photoRequirements.length} required photos`);
+    if (uploadedPhotos.length < MIN_PHOTOS) {
+      setError(`Please upload at least ${MIN_PHOTOS} photos.`);
       return;
     }
 
     setIsUploading(true);
     try {
-      // Here we'll add the AI assessment integration later
       setFormData(prev => ({
         ...prev,
         photos: uploadedPhotos
@@ -99,11 +104,10 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
           Upload Vehicle Photos
         </h2>
         <p className="text-gray-600">
-          Please provide clear photos of your vehicle. Up to {MAX_PHOTOS} photos allowed.
+          Please provide clear photos of your vehicle. Upload between {MIN_PHOTOS} and {MAX_PHOTOS} photos.
         </p>
       </div>
-
-      {/* Required Photos Checklist */}
+      
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-medium mb-3">Required Photos:</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -126,7 +130,6 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
         </div>
       </div>
 
-      {/* Upload Area */}
       <div 
         className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50"
         onClick={() => fileInputRef.current?.click()}
@@ -144,7 +147,7 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
           Click or drag photos here to upload
         </p>
         <p className="text-sm text-gray-500 mt-2">
-          Maximum {MAX_PHOTOS} photos, 5MB each
+          Upload between {MIN_PHOTOS} and {MAX_PHOTOS} photos, 5MB each
         </p>
       </div>
 
@@ -154,7 +157,6 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
         </div>
       )}
 
-      {/* Photo Previews */}
       {uploadedPhotos.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {uploadedPhotos.map((photo, index) => (
@@ -175,7 +177,6 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
         </div>
       )}
 
-      {/* Navigation */}
       <div className="flex justify-between mt-8">
         <button
           onClick={onPrev}
@@ -186,8 +187,12 @@ export default function PhotoUpload({ formData, setFormData, onNext, onPrev }) {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={isUploading || uploadedPhotos.length < photoRequirements.length}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+          disabled={isUploading || uploadedPhotos.length < MIN_PHOTOS}
+          className={`px-6 py-2 rounded-md flex items-center ${
+            isUploading || uploadedPhotos.length < MIN_PHOTOS
+              ? 'bg-blue-300 text-white cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
         >
           {isUploading ? 'Processing...' : 'Continue to Review'}
         </button>

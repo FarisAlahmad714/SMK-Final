@@ -337,6 +337,7 @@ const renderDay = (day) => {
 
      {isModalOpen && (
        <AppointmentModal
+       isOpen={isModalOpen}
          appointment={selectedAppointment}
          selectedDate={selectedDate}
          onClose={handleModalClose}
