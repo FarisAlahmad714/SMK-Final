@@ -20,6 +20,7 @@
     "@radix-ui/react-popover": "^1.1.4",
     "@react-email/components": "^0.0.31",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.6.1",
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",

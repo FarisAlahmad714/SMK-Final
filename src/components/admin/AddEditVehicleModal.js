@@ -17,7 +17,7 @@ export default function AddEditVehicleModal({ vehicle, onClose, onSave }) {
     transmission: vehicle?.transmission || 'Automatic',
     exteriorColor: vehicle?.exteriorColor || '',
     description: vehicle?.description || '',
-    images: vehicle?.images || [],
+    images: vehicle?.images || ['/images/hero1.webp'],
     status: vehicle?.status || 'AVAILABLE',
   })
 

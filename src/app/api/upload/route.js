@@ -1,7 +1,11 @@
 // src/app/api/upload/route.js
 import { NextResponse } from 'next/server'
-import { writeFile } from 'fs/promises'
-import path from 'path'
+import { v2 as cloudinary } from 'cloudinary'
+
+// Configure cloudinary
+cloudinary.config({
+  cloudinary_url: process.env.CLOUDINARY_URL
+})
 
 export async function POST(request) {
   try {
@@ -9,31 +13,40 @@ export async function POST(request) {
     const file = formData.get('file')
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file uploaded' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Create unique filename
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`
-    const filename = `${uniqueSuffix}-${file.name}`
-    
-    // Save to public/uploads directory
-    const uploadDir = path.join(process.cwd(), 'public/uploads')
-    await writeFile(path.join(uploadDir, filename), buffer)
-    
-    // Return the public URL
-    const imageUrl = `/uploads/${filename}`
-    
-    return NextResponse.json({ url: imageUrl })
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: 'smk-auto-vehicles',
+          resource_type: 'image',
+          transformation: [
+            { width: 800, height: 600, crop: 'fill', quality: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error)
+          else resolve(result)
+        }
+      ).end(buffer)
+    })
+
+    return NextResponse.json({
+      success: true,
+      url: result.secure_url,
+      public_id: result.public_id
+    })
+
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json(
-      { error: 'Upload failed' },
+      { error: 'Upload failed', details: error.message },
       { status: 500 }
     )
   }
