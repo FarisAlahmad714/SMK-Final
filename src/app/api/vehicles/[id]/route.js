@@ -142,6 +142,44 @@ export async function DELETE(request, context) {
   }
 
   try {
+    // Check for related records first
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: String(id) },
+      include: {
+        testDrives: true,
+        transactions: true,
+        submissions: true
+      }
+    })
+
+    if (!vehicle) {
+      return NextResponse.json(
+        { error: 'Vehicle not found' },
+        { status: 404 }
+      )
+    }
+
+    // Delete related records first to avoid foreign key constraints
+    if (vehicle.testDrives.length > 0) {
+      await prisma.testDrive.deleteMany({
+        where: { vehicleId: String(id) }
+      })
+    }
+
+    if (vehicle.transactions.length > 0) {
+      await prisma.transaction.deleteMany({
+        where: { vehicleId: String(id) }
+      })
+    }
+
+    if (vehicle.submissions.length > 0) {
+      await prisma.vehicleSubmission.updateMany({
+        where: { desiredVehicleId: String(id) },
+        data: { desiredVehicleId: null }
+      })
+    }
+
+    // Now delete the vehicle
     await prisma.vehicle.delete({
       where: { 
         id: String(id)
@@ -151,8 +189,17 @@ export async function DELETE(request, context) {
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     console.error('Error deleting vehicle:', error)
+    
+    // Provide more specific error messages
+    if (error.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Cannot delete vehicle: it has related records (appointments, transactions, etc.)' },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Error deleting vehicle' },
+      { error: 'Error deleting vehicle', details: error.message },
       { status: 500 }
     )
   }

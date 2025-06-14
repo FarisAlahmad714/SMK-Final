@@ -69,15 +69,23 @@ export default function VehicleManagement() {
   }, [groupedVehicles, searchTerm])
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this vehicle?')) return
+    if (!window.confirm('Are you sure you want to delete this vehicle? This will also remove any related appointments and transactions.')) return
     try {
       const res = await fetch(`/api/vehicles/${id}`, {
         method: 'DELETE',
       })
-      if (!res.ok) throw new Error('Failed to delete vehicle')
-      fetchVehicles()
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to delete vehicle')
+      }
+      
+      // Success - refresh the vehicles list
+      await fetchVehicles()
+      alert('Vehicle deleted successfully!')
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Delete error:', error)
+      alert(`Failed to delete vehicle: ${error.message}`)
     }
   }
 
