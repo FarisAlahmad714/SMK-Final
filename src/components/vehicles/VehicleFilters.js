@@ -61,11 +61,11 @@ export default function VehicleFilters({ onFilterChange }) {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Make
         </label>
         <select
-          className="w-full border rounded-md py-2 px-3"
+          className="w-full rounded-md py-2 px-3 border border-gray-300 bg-gray-50 text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           value={filters.make}
           onChange={(e) => handleChange('make', e.target.value)}
         >
@@ -77,11 +77,11 @@ export default function VehicleFilters({ onFilterChange }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Price Range
         </label>
         <select
-          className="w-full border rounded-md py-2 px-3"
+          className="w-full rounded-md py-2 px-3 border border-gray-300 bg-gray-50 text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           value={`${filters.minPrice}-${filters.maxPrice}`}
           onChange={(e) => {
             const [min, max] = e.target.value.split('-')
@@ -100,11 +100,11 @@ export default function VehicleFilters({ onFilterChange }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Year
         </label>
         <select
-          className="w-full border rounded-md py-2 px-3"
+          className="w-full rounded-md py-2 px-3 border border-gray-300 bg-gray-50 text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           value={filters.year}
           onChange={(e) => handleChange('year', e.target.value)}
         >
