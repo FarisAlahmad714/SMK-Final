@@ -7,8 +7,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
 
   const login = async (email, password) => {
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@smkauto.com'
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+    // Use environment variables only (must be provided at build time)
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD
     
     if (email === adminEmail && password === adminPassword) {
       setUser({ email })

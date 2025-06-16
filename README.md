@@ -89,7 +89,7 @@ SMK Auto is a comprehensive auto dealership management system built with modern 
 6. **Access the application**
    - Public site: `http://localhost:3000`
    - Admin dashboard: `http://localhost:3000/admin`
-   - Demo credentials: `admin@smkauto.com` / `admin123`
+   - Demo credentials: `admin@smkauto.com` / `<your-admin-password>`
 
 ## 📋 Environment Configuration
 
@@ -99,7 +99,10 @@ DATABASE_URL="postgresql://username:password@localhost:5432/smkauto"
 
 # Admin Authentication
 ADMIN_EMAIL="admin@smkauto.com"
-ADMIN_PASSWORD="admin123"
+ADMIN_PASSWORD="<your-admin-password>"
+# Expose admin credentials for client-side demo components (optional)
+NEXT_PUBLIC_ADMIN_EMAIL="admin@smkauto.com"
+NEXT_PUBLIC_ADMIN_PASSWORD="<your-admin-password>"
 
 # Email Service
 EMAIL_USER="your-email@gmail.com"

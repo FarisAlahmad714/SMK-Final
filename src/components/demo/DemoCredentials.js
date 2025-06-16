@@ -8,8 +8,8 @@ export default function DemoCredentials() {
   const [copied, setCopied] = useState({ email: false, password: false })
 
   const credentials = {
-    email: 'admin@smkauto.com',
-    password: 'admin123'
+    email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || '',
+    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || ''
   }
 
   const copyToClipboard = async (text, type) => {
