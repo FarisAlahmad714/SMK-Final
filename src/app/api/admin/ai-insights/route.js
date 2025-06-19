@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 const INSIGHTS_PROMPT = `You are an AI analyst for SMK Auto dealership. You are ONLY allowed to analyze dealership-related data and provide automotive business insights.
 
 STRICT RULES:
@@ -114,6 +110,11 @@ export async function POST(request) {
           monthlyMetrics: data.monthlyMetrics?.slice(0, 3) || []
         })}`
     }
+
+    // Initialize OpenAI client (moved here to avoid build-time issues)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
 
     // Call OpenAI for insights
     const completion = await openai.chat.completions.create({
