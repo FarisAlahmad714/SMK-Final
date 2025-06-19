@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, subMonths, addMonths } from 'date-fns';
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { format, subMonths, addMonths, subYears, addYears } from 'date-fns';
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar, BarChart3 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend, LineChart, Line
@@ -11,7 +11,8 @@ import {
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewType, setViewType] = useState('yearly'); // Default to yearly view
   const [metrics, setMetrics] = useState({
     totalRevenue: 0,
     websiteAppointments: 0,
@@ -31,17 +32,19 @@ export default function DashboardPage() {
     totalTradeRequests: 0,
     pendingSellTrade: 0,
     approvedSellTrade: 0,
-    rejectedSellTrade: 0
+    rejectedSellTrade: 0,
+    viewType: 'yearly',
+    period: ''
   });
 
   useEffect(() => {
-    fetchMetrics(currentMonth);
-  }, [currentMonth]);
+    fetchMetrics(currentDate, viewType);
+  }, [currentDate, viewType]);
 
-  const fetchMetrics = async (date) => {
+  const fetchMetrics = async (date, view) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/dashboard/metrics?month=${date.toISOString()}`);
+      const res = await fetch(`/api/dashboard/metrics?month=${date.toISOString()}&view=${view}`);
       if (!res.ok) throw new Error('Failed to fetch metrics');
       const data = await res.json();
       setMetrics(data);
@@ -68,7 +71,21 @@ export default function DashboardPage() {
        (Number(metrics.totalRevenue) || 1) * 100).toFixed(2)
     : '0.00';
 
+  const handleDateChange = (direction) => {
+    if (viewType === 'yearly') {
+      setCurrentDate(prev => direction === 'next' ? addYears(prev, 1) : subYears(prev, 1));
+    } else {
+      setCurrentDate(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1));
+    }
+  };
 
+  const getPeriodDisplay = () => {
+    if (viewType === 'yearly') {
+      return format(currentDate, 'yyyy');
+    } else {
+      return format(currentDate, 'MMMM yyyy');
+    }
+  };
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
@@ -89,75 +106,141 @@ export default function DashboardPage() {
                 <span className="text-sm text-gray-500">Advanced Analytics & Business Intelligence</span>
               </div>
             </div>
-            <div className="mt-4 md:mt-0 flex items-center bg-gray-50 rounded-lg p-2">
-              <button 
-                onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
-                className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <span className="font-medium px-4 text-gray-900">
-                {format(currentMonth, 'MMMM yyyy')}
-              </span>
-              <button 
-                onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
-                className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-600" />
-              </button>
+            <div className="mt-4 md:mt-0 flex items-center space-x-4">
+              {/* View Type Toggle */}
+              <div className="flex items-center bg-gray-50 rounded-lg p-1">
+                <button
+                  onClick={() => setViewType('yearly')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewType === 'yearly'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 inline mr-1" />
+                  Yearly
+                </button>
+                <button
+                  onClick={() => setViewType('monthly')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewType === 'monthly'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  Monthly
+                </button>
+              </div>
+              
+              {/* Date Navigation */}
+              <div className="flex items-center bg-gray-50 rounded-lg p-2">
+                <button 
+                  onClick={() => handleDateChange('prev')}
+                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-gray-600" />
+                </button>
+                <span className="font-medium px-4 text-gray-900">
+                  {getPeriodDisplay()}
+                </span>
+                <button 
+                  onClick={() => handleDateChange('next')}
+                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-       {/* Key Performance Indicators */}
-<section className="mb-8">
-  <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Performance Indicators</h2>
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-    <MetricCard
-      title="Monthly Revenue"
-      value={formatCurrency(metrics.totalRevenue)}
-      icon="💰"
-      trend={"+12.3%"}
-      trendType="up"
-      color="primary"
-    />
-    <MetricCard
-      title="Net Profit"
-      value={formatCurrency(netProfit)}
-      icon="💸"
-      trend={"+8.1%"}
-      trendType="up"
-      color="success"
-    />
-    <MetricCard
-      title="Total Customers"
-      value={metrics.totalCustomers}
-      icon="👥"
-      trend={"+15.7%"}
-      trendType="up"
-      color="info"
-      description="All time"
-    />
-    <MetricCard
-      title="Profit Margin"
-      value={`${profitMargin}%`}
-      icon="📊"
-      trend={"-2.4%"}
-      trendType="down"
-      color="warning"
-    />
-    <MetricCard
-      title="Active Inventory"
-      value={metrics.activeInventory}
-      icon="📦"
-      trend={"+5"}
-      trendType="up"
-      color="neutral"
-    />
-  </div>
-</section>
+        {/* Key Performance Indicators */}
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Performance Indicators</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <MetricCard
+              title={viewType === 'yearly' ? 'Yearly Revenue' : 'Monthly Revenue'}
+              value={formatCurrency(metrics.totalRevenue)}
+              icon="💰"
+              trend={"+12.3%"}
+              trendType="up"
+              color="primary"
+            />
+            <MetricCard
+              title={viewType === 'yearly' ? 'Yearly Net Profit' : 'Net Profit'}
+              value={formatCurrency(netProfit)}
+              icon="💸"
+              trend={"+8.1%"}
+              trendType="up"
+              color="success"
+            />
+            <MetricCard
+              title="Total Customers"
+              value={metrics.totalCustomers}
+              icon="👥"
+              trend={"+15.7%"}
+              trendType="up"
+              color="info"
+              description="All time"
+            />
+            <MetricCard
+              title="Profit Margin"
+              value={`${profitMargin}%`}
+              icon="📊"
+              trend={"-2.4%"}
+              trendType="down"
+              color="warning"
+            />
+            <MetricCard
+              title="Active Inventory"
+              value={metrics.activeInventory}
+              icon="📦"
+              trend={"+5"}
+              trendType="up"
+              color="neutral"
+            />
+          </div>
+        </section>
+
+        {/* Sell/Trade Performance - Prominently Displayed */}
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Sell/Trade Performance</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MetricCard
+              title={viewType === 'yearly' ? 'Yearly Sell Requests' : 'Monthly Sell Requests'}
+              value={metrics.monthlySellRequests}
+              icon="📝"
+              trend={"+18.5%"}
+              trendType="up"
+              color="primary"
+            />
+            <MetricCard
+              title={viewType === 'yearly' ? 'Yearly Trade Requests' : 'Monthly Trade Requests'}
+              value={metrics.monthlyTradeRequests}
+              icon="🔄"
+              trend={"+12.2%"}
+              trendType="up"
+              color="info"
+            />
+            <MetricCard
+              title="Total Sell Requests"
+              value={metrics.totalSellRequests}
+              icon="📋"
+              color="success"
+              description="All time"
+            />
+            <MetricCard
+              title="Total Trade Requests"
+              value={metrics.totalTradeRequests}
+              icon="🔄"
+              color="warning"
+              description="All time"
+            />
+          </div>
+        </section>
 
         {/* Sales Performance */}
         <section className="mb-8">
@@ -166,11 +249,13 @@ export default function DashboardPage() {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-base font-semibold text-gray-900">Monthly Sales Trend</h3>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    {viewType === 'yearly' ? 'Yearly Sales Trend' : 'Monthly Sales Trend'}
+                  </h3>
                   <div className="flex items-center space-x-4">
                     <span className="flex items-center text-sm text-emerald-600">
                       <TrendingUp className="w-4 h-4 mr-1" />
-                      +8.4% vs last month
+                      +8.4% vs last {viewType === 'yearly' ? 'year' : 'month'}
                     </span>
                   </div>
                 </div>
@@ -190,10 +275,10 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-1 gap-6">
               <MetricCard
-                title="Total Vehicles Sold"
+                title={viewType === 'yearly' ? 'Yearly Vehicles Sold' : 'Total Vehicles Sold'}
                 value={metrics.totalVehiclesSold}
                 icon="🚗"
-                description="This month"
+                description={viewType === 'yearly' ? 'This year' : 'This month'}
                 color="primary"
               />
               <MetricCard
@@ -248,10 +333,10 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-1 gap-6">
               <MetricCard
-                title="Total Appointments"
+                title={viewType === 'yearly' ? 'Yearly Appointments' : 'Total Appointments'}
                 value={metrics.totalAppointments}
                 icon="📅"
-                description="This month"
+                description={viewType === 'yearly' ? 'This year' : 'This month'}
                 color="primary"
               />
               <MetricCard
@@ -265,20 +350,22 @@ export default function DashboardPage() {
                 title="Cancellations"
                 value={metrics.cancelledAppointments}
                 icon="❌"
-                description="This month"
+                description={viewType === 'yearly' ? 'This year' : 'This month'}
                 color="danger"
               />
             </div>
           </div>
         </section>
 
-        {/* Sell/Trade Requests */}
+        {/* Sell/Trade Requests Detailed View */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Sell/Trade Requests</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Sell/Trade Request Details</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Monthly Request Overview */}
+            {/* Request Type Distribution */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Monthly Requests</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">
+                {viewType === 'yearly' ? 'Yearly Request Types' : 'Monthly Request Types'}
+              </h3>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <MetricCard
                   title="Sell Requests"

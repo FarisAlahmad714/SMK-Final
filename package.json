@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "prisma:seed": "node prisma/seed.js",
+    "generate:sample-data": "node scripts/generate-sample-data.js",
+    "create:admin-sales": "node scripts/create-admin-sales.js",
+    "create:full-year-demo": "node scripts/create-full-year-demo.js",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -15,6 +18,8 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
+    "@langchain/community": "^0.3.46",
+    "@langchain/openai": "^0.5.13",
     "@prisma/client": "^6.1.0",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-popover": "^1.1.4",
@@ -24,11 +29,13 @@
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "langchain": "^0.3.28",
     "lucide-react": "^0.468.0",
     "next": "^15.1.4",
     "next-auth": "^4.24.11",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
+    "openai": "^5.5.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.4.1",

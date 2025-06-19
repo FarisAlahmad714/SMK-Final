@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Car, Calendar, Users, LogOut, RefreshCw, DollarSign } from 'lucide-react'
+import { LayoutDashboard, Car, Calendar, Users, LogOut, RefreshCw, DollarSign, Brain } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -104,6 +104,18 @@ export default function AdminLayout({ children }) {
           >
             <RefreshCw className="w-5 h-5 mr-3" />
             Sell/Trade
+          </Link>
+
+          <Link
+            href="/admin/ai-assistant"
+            className={`flex items-center px-6 py-3 ${
+              pathname === '/admin/ai-assistant'
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
+            }`}
+          >
+            <Brain className="w-5 h-5 mr-3" />
+            Abood (AI Assistant)
           </Link>
 
           <button

@@ -5,6 +5,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get('month');
+    const viewType = searchParams.get('view') || 'monthly'; // 'monthly' or 'yearly'
     
     if (!dateParam) {
       return NextResponse.json(
@@ -14,10 +15,20 @@ export async function GET(request) {
     }
 
     const date = new Date(dateParam);
-    const start = new Date(date.getFullYear(), date.getMonth(), 1);
-    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    
+    let start, end;
+    
+    if (viewType === 'yearly') {
+      // For yearly view, get the entire year
+      start = new Date(date.getFullYear(), 0, 1); // January 1st
+      end = new Date(date.getFullYear(), 11, 31, 23, 59, 59); // December 31st
+    } else {
+      // For monthly view, get the specific month
+      start = new Date(date.getFullYear(), date.getMonth(), 1);
+      end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    }
 
-    // Get all appointments for the month
+    // Get all appointments for the period
     const appointments = await prisma.testDrive.findMany({
       where: {
         date: {
@@ -70,7 +81,7 @@ export async function GET(request) {
       }
     });
 
-    // Get all sold vehicles for the month with their test drives and transactions
+    // Get all sold vehicles for the period with their test drives and transactions
     const soldVehicles = await prisma.vehicle.findMany({
       where: {
         status: 'SOLD',
@@ -93,7 +104,7 @@ export async function GET(request) {
       }
     });
 
-    // Calculate total vehicles sold for the month
+    // Calculate total vehicles sold for the period
     const totalVehiclesSold = soldVehicles.length;
     
     // Calculate website drive sales
@@ -126,9 +137,8 @@ export async function GET(request) {
     // Get total customers
     const totalCustomers = await prisma.customer.count();
 
-    // Get sell/trade metrics
-    // Monthly requests
-    const monthlyRequests = await prisma.vehicleSubmission.findMany({
+    // Get sell/trade metrics for the period
+    const periodRequests = await prisma.vehicleSubmission.findMany({
       where: {
         createdAt: {
           gte: start,
@@ -137,10 +147,10 @@ export async function GET(request) {
       }
     });
 
-    const monthlySellRequests = monthlyRequests.filter(req => req.type === 'sell').length;
-    const monthlyTradeRequests = monthlyRequests.filter(req => req.type === 'trade').length;
+    const periodSellRequests = periodRequests.filter(req => req.type === 'sell').length;
+    const periodTradeRequests = periodRequests.filter(req => req.type === 'trade').length;
 
-    // All-time totals
+    // All-time totals for sell/trade
     const totalSellRequests = await prisma.vehicleSubmission.count({
       where: { type: 'sell' }
     });
@@ -149,9 +159,15 @@ export async function GET(request) {
       where: { type: 'trade' }
     });
 
-    // Status counts
+    // Status counts for the period
     const statusCounts = await prisma.vehicleSubmission.groupBy({
       by: ['status'],
+      where: {
+        createdAt: {
+          gte: start,
+          lt: end
+        }
+      },
       _count: {
         status: true
       }
@@ -161,57 +177,59 @@ export async function GET(request) {
     const approvedSellTrade = statusCounts.find(s => s.status === 'APPROVED')?._count.status || 0;
     const rejectedSellTrade = statusCounts.find(s => s.status === 'REJECTED')?._count.status || 0;
 
-    // Save monthly metrics
-    await prisma.monthlyMetric.upsert({
-      where: { month: start },
-      create: {
-        month: start,
-        totalAppointments,
-        websiteAppointments,
-        otherAppointments,
-        totalVehiclesSold,
-        websiteDriveSales,
-        otherSourceSales,
-        totalRevenue,
-        totalVehicleCosts,
-        netProfit,
-        profitMargin,
-        cancelledAppointments,
-        activeInventory,
-        totalCustomers,
-        totalVehicles,
-        monthlySellRequests,
-        monthlyTradeRequests,
-        pendingSellTrade,
-        approvedSellTrade,
-        rejectedSellTrade,
-        totalSellRequests,
-        totalTradeRequests
-      },
-      update: {
-        totalAppointments,
-        websiteAppointments,
-        otherAppointments,
-        totalVehiclesSold,
-        websiteDriveSales,
-        otherSourceSales,
-        totalRevenue,
-        totalVehicleCosts,
-        netProfit,
-        profitMargin,
-        cancelledAppointments,
-        activeInventory,
-        totalCustomers,
-        totalVehicles,
-        monthlySellRequests,
-        monthlyTradeRequests,
-        pendingSellTrade,
-        approvedSellTrade,
-        rejectedSellTrade,
-        totalSellRequests,
-        totalTradeRequests
-      }
-    });
+    // If this is a monthly view, save/update monthly metrics
+    if (viewType === 'monthly') {
+      await prisma.monthlyMetric.upsert({
+        where: { month: start },
+        create: {
+          month: start,
+          totalAppointments,
+          websiteAppointments,
+          otherAppointments,
+          totalVehiclesSold,
+          websiteDriveSales,
+          otherSourceSales,
+          totalRevenue,
+          totalVehicleCosts,
+          netProfit,
+          profitMargin,
+          cancelledAppointments,
+          activeInventory,
+          totalCustomers,
+          totalVehicles,
+          monthlySellRequests: periodSellRequests,
+          monthlyTradeRequests: periodTradeRequests,
+          pendingSellTrade,
+          approvedSellTrade,
+          rejectedSellTrade,
+          totalSellRequests,
+          totalTradeRequests
+        },
+        update: {
+          totalAppointments,
+          websiteAppointments,
+          otherAppointments,
+          totalVehiclesSold,
+          websiteDriveSales,
+          otherSourceSales,
+          totalRevenue,
+          totalVehicleCosts,
+          netProfit,
+          profitMargin,
+          cancelledAppointments,
+          activeInventory,
+          totalCustomers,
+          totalVehicles,
+          monthlySellRequests: periodSellRequests,
+          monthlyTradeRequests: periodTradeRequests,
+          pendingSellTrade,
+          approvedSellTrade,
+          rejectedSellTrade,
+          totalSellRequests,
+          totalTradeRequests
+        }
+      });
+    }
 
     // Return all metrics
     return NextResponse.json({
@@ -230,13 +248,15 @@ export async function GET(request) {
       totalCustomers,
       totalVehicles,
       cancellationReasons: formattedReasons,
-      monthlySellRequests,
-      monthlyTradeRequests,
+      monthlySellRequests: periodSellRequests,
+      monthlyTradeRequests: periodTradeRequests,
       totalSellRequests,
       totalTradeRequests,
       pendingSellTrade,
       approvedSellTrade,
-      rejectedSellTrade
+      rejectedSellTrade,
+      viewType,
+      period: viewType === 'yearly' ? `${date.getFullYear()}` : `${date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
     });
 
   } catch (error) {
