@@ -3,9 +3,6 @@ import { PrismaClient } from '@prisma/client'
 import OpenAI from 'openai'
 
 const prisma = new PrismaClient()
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 // System prompt for the AI - STRICTLY DEALERSHIP FOCUSED with ENHANCED FORMATTING
 const SYSTEM_PROMPT = `You are Abood, the AI assistant for SMK Auto dealership. Your name is Abood and you should introduce yourself as such when greeted or asked about your name.
@@ -310,6 +307,11 @@ export async function POST(request) {
     }
     
     console.log(`[AI-CHAT] ALLOWED query: "${message}"`)
+    
+    // Initialize OpenAI client (moved here to avoid build-time issues)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
     
     // Get optimized data based on the query
     const relevantData = await getOptimizedData(message)
