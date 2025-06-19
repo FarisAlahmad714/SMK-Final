@@ -1,6 +1,8 @@
 // src/app/layout.js
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { GoogleAnalytics } from '@next/third-parties/google'
+import FirebaseInit from '../components/FirebaseInit'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,7 +22,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
+        <FirebaseInit />
         {children}
+        <GoogleAnalytics gaId="G-P233XBCDTB" />
       </body>
     </html>
   )

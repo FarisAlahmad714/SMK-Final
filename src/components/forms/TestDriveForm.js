@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { isSameDay, parseISO } from "date-fns";
 import { useRouter } from "next/navigation"; // Import useRouter
+import { trackTestDriveRequest } from "@/lib/firebase";
 
 export default function TestDriveForm({ vehicle, onClose }) {
   const router = useRouter(); // Initialize router
@@ -119,6 +120,9 @@ export default function TestDriveForm({ vehicle, onClose }) {
       }
   
       setSuccess(true);
+      
+      // Track test drive request in Firebase/GA4
+      trackTestDriveRequest(vehicle.id, "WEBSITE");
   
       // Redirect to home after a brief delay (e.g., 3 seconds)
       setTimeout(() => {

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import TestDriveForm from '@/components/forms/TestDriveForm'
+import { trackVehicleView } from '@/lib/firebase'
 
 export default function VehicleDetailsPage({ params }) {
   const [vehicle, setVehicle] = useState(null)
@@ -23,6 +24,11 @@ export default function VehicleDetailsPage({ params }) {
       if (!res.ok) throw new Error('Failed to fetch vehicle')
       const data = await res.json()
       setVehicle(data)
+      
+      // Track vehicle view in Firebase/GA4
+      if (data) {
+        trackVehicleView(data.id, data.make, data.model, data.year)
+      }
     } catch (error) {
       console.error('Error:', error)
     } finally {

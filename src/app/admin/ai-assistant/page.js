@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Brain, TrendingUp, Car, Users, DollarSign, Calendar, Zap, BarChart3 } from 'lucide-react'
 import Head from 'next/head'
+import { trackAIAssistantUsage } from '@/lib/firebase'
 
 // Enhanced markdown renderer for better formatting
 const renderMarkdown = (text) => {
@@ -112,6 +113,7 @@ export default function AIAssistant() {
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
+    const startTime = Date.now()
 
     try {
       const response = await fetch('/api/admin/ai-chat', {
@@ -142,6 +144,10 @@ export default function AIAssistant() {
       }
 
       setMessages(prev => [...prev, aiMessage])
+      
+      // Track AI Assistant usage in Firebase/GA4
+      const responseTime = Date.now() - startTime
+      trackAIAssistantUsage(messageText, responseTime)
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMessage = {
